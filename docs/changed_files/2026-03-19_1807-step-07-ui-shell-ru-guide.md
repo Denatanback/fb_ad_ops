@@ -1,0 +1,24 @@
+# Step 07 Changed Files
+
+- `src/lib/navigation.ts` - Replaced the minimal nav model with Russian grouped workspace navigation and active-route helpers.
+- `src/lib/ui-copy.ts` - Added centralized Russian MVP UI copy for auth, dashboard, placeholder pages, guide content, and role labels.
+- `src/components/workspace/page-header.tsx` - Added a reusable page header for workspace sections.
+- `src/components/workspace/section-card.tsx` - Added a reusable detailed card wrapper for internal-tool pages.
+- `src/components/workspace/empty-state.tsx` - Added a reusable empty-state block for placeholder operational screens.
+- `src/components/workspace/placeholder-page.tsx` - Added a shared placeholder page layout used by the MVP workspace sections.
+- `src/components/layout/sidebar.tsx` - Reworked the sidebar into a Russian, grouped, active-aware internal workspace navigation.
+- `src/components/layout/topbar.tsx` - Updated the topbar to show route-aware Russian headings and role labels.
+- `src/components/ui/theme-toggle.tsx` - Adapted visible theme toggle text to Russian while keeping the existing theme wiring.
+- `src/components/auth/sign-out-button.tsx` - Adapted sign-out button text to Russian.
+- `src/components/auth/sign-in-form.tsx` - Adapted sign-in form labels, placeholders, submit states, and error text to Russian.
+- `src/app/sign-in/page.tsx` - Updated the sign-in screen copy to Russian.
+- `src/app/unauthorized/page.tsx` - Updated the unauthorized screen copy to Russian.
+- `src/app/(workspace)/page.tsx` - Replaced the bootstrap dashboard with a more polished Russian MVP workspace overview.
+- `src/app/(workspace)/creatives/page.tsx` - Added the protected Creatives placeholder page.
+- `src/app/(workspace)/queue/page.tsx` - Added the protected Queue placeholder page.
+- `src/app/(workspace)/active/page.tsx` - Added the protected Active placeholder page.
+- `src/app/(workspace)/scaling/page.tsx` - Added the protected Scaling placeholder page.
+- `src/app/(workspace)/approaches/page.tsx` - Added the protected Approaches placeholder page.
+- `src/app/(workspace)/landers/page.tsx` - Added the protected Landers placeholder page.
+- `src/app/(workspace)/guide/page.tsx` - Added the protected built-in guide/help page in Russian.
+- `src/app/globals.css` - Extended the shell styles for active navigation, reusable workspace patterns, and the new guide/placeholder layouts.

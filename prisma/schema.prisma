@@ -1,0 +1,922 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  ADMIN  @map("admin")
+  MEMBER @map("member")
+
+  @@map("role")
+}
+
+enum LifecycleStatus {
+  QUEUE   @map("queue")
+  ACTIVE  @map("active")
+  STOPPED @map("stopped")
+  SCALING @map("scaling")
+
+  @@map("lifecycle_status")
+}
+
+enum CreativeLabelKey {
+  WINNER  @map("winner")
+  LOSER   @map("loser")
+  TOP_CTR @map("top_ctr")
+
+  @@map("creative_label_key")
+}
+
+enum BudgetMode {
+  ADSET    @map("adset")
+  CAMPAIGN @map("campaign")
+
+  @@map("budget_mode")
+}
+
+enum ImportSourceType {
+  CSV_UPLOAD @map("csv_upload")
+
+  @@map("import_source_type")
+}
+
+enum ImportLevel {
+  CAMPAIGN @map("campaign")
+  AD_SET   @map("ad_set")
+  AD       @map("ad")
+
+  @@map("import_level")
+}
+
+enum ImportRunStatus {
+  RECEIVED    @map("received")
+  PARSING     @map("parsing")
+  NORMALIZING @map("normalizing")
+  ANALYZING   @map("analyzing")
+  COMPLETED   @map("completed")
+  FAILED      @map("failed")
+
+  @@map("import_run_status")
+}
+
+enum AnalyzerEvaluationMode {
+  RESULTS_AWARE @map("results_aware")
+  PROXY_MODE    @map("proxy_mode")
+
+  @@map("analyzer_evaluation_mode")
+}
+
+enum AnalyzerConfidenceLevel {
+  LOW    @map("low")
+  MEDIUM @map("medium")
+  HIGH   @map("high")
+
+  @@map("analyzer_confidence_level")
+}
+
+enum AnalyzerRuleScope {
+  GLOBAL   @map("global")
+  APPROACH @map("approach")
+  FUNNEL   @map("funnel")
+
+  @@map("analyzer_rule_scope")
+}
+
+enum AnalyzerRuleStage {
+  WATCHDOG  @map("watchdog")
+  BENCHMARK @map("benchmark")
+
+  @@map("analyzer_rule_stage")
+}
+
+enum AnalyzerRuleKey {
+  OUTBOUND_CTR              @map("outbound_ctr")
+  CPLPV                     @map("cplpv")
+  SPEND_NO_RESULTS_CREATIVE @map("spend_no_results_creative")
+  SPEND_NO_RESULTS_ADSET    @map("spend_no_results_adset")
+
+  @@map("analyzer_rule_key")
+}
+
+enum AnalyzerMetricKey {
+  OUTBOUND_CTR @map("outbound_ctr")
+  CPLPV        @map("cplpv")
+  SPEND        @map("spend")
+
+  @@map("analyzer_metric_key")
+}
+
+enum NotificationTopicKey {
+  conversions        @map("conversions")
+  needs_review       @map("needs_review")
+  strong_signals     @map("strong_signals")
+  import_errors_tech @map("import_errors_tech")
+  bot_test           @map("bot_test")
+
+  @@map("notification_topic_key")
+}
+
+enum AnalyzerAlertKind {
+  CONVERSION_ARRIVAL @map("conversion_arrival")
+  SPEND_PACING_RISK  @map("spend_pacing_risk")
+  WEAK_PERFORMANCE   @map("weak_performance")
+  OPPORTUNITY_REVIEW @map("opportunity_review")
+  IMPORT_ERROR_TECH  @map("import_error_tech")
+
+  @@map("analyzer_alert_kind")
+}
+
+enum AlertSeverity {
+  INFO     @map("info")
+  WARNING  @map("warning")
+  CRITICAL @map("critical")
+
+  @@map("alert_severity")
+}
+
+enum NotificationChannel {
+  TELEGRAM @map("telegram")
+
+  @@map("notification_channel")
+}
+
+enum NotificationDispatchMode {
+  IMMEDIATE  @map("immediate")
+  DIGEST_30M @map("digest_30m")
+
+  @@map("notification_dispatch_mode")
+}
+
+enum NotificationDeliveryStatus {
+  PENDING @map("pending")
+  SENT    @map("sent")
+  FAILED  @map("failed")
+  SKIPPED @map("skipped")
+
+  @@map("notification_delivery_status")
+}
+
+enum NotificationDigestStatus {
+  QUEUED   @map("queued")
+  BUILT    @map("built")
+  SENT     @map("sent")
+  FAILED   @map("failed")
+  DEFERRED @map("deferred")
+
+  @@map("notification_digest_status")
+}
+
+model User {
+  id            String    @id @default(cuid()) @map("id")
+  email         String    @unique @map("email")
+  name          String?   @map("name")
+  passwordHash  String?   @map("password_hash")
+  role          Role      @default(MEMBER) @map("role")
+  emailVerified DateTime? @map("email_verified")
+  image         String?   @map("image")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+  accounts      Account[]
+  sessions      Session[]
+
+  createdApproaches                Approach[]                @relation("ApproachCreatedBy")
+  updatedApproaches                Approach[]                @relation("ApproachUpdatedBy")
+  createdCreatives                 Creative[]                @relation("CreativeCreatedBy")
+  updatedCreatives                 Creative[]                @relation("CreativeUpdatedBy")
+  createdLanders                   Lander[]                  @relation("LanderCreatedBy")
+  updatedLanders                   Lander[]                  @relation("LanderUpdatedBy")
+  createdLaunches                  Launch[]                  @relation("LaunchCreatedBy")
+  updatedLaunches                  Launch[]                  @relation("LaunchUpdatedBy")
+  createdLaunchPlans               LaunchPlan[]              @relation("LaunchPlanCreatedBy")
+  updatedLaunchPlans               LaunchPlan[]              @relation("LaunchPlanUpdatedBy")
+  createdLaunchMetrics             LaunchMetrics[]           @relation("LaunchMetricsCreatedBy")
+  updatedLaunchMetrics             LaunchMetrics[]           @relation("LaunchMetricsUpdatedBy")
+  assignedCreativeLabelLinks       CreativeLabelAssignment[] @relation("CreativeLabelAssignmentAssignedBy")
+  uploadedImportRuns               ImportRun[]               @relation("ImportRunUploadedBy")
+  connectedGoogleDriveIntegrations GoogleDriveIntegration[]  @relation("GoogleDriveIntegrationConnectedBy")
+  updatedGoogleDriveIntegrations   GoogleDriveIntegration[]  @relation("GoogleDriveIntegrationUpdatedBy")
+  updatedSystemSettings            SystemSetting[]           @relation("SystemSettingUpdatedBy")
+
+  @@map("users")
+}
+
+model Account {
+  id                String  @id @default(cuid()) @map("id")
+  userId            String  @map("user_id")
+  type              String  @map("type")
+  provider          String  @map("provider")
+  providerAccountId String  @map("provider_account_id")
+  refreshToken      String? @map("refresh_token")
+  accessToken       String? @map("access_token")
+  expiresAt         Int?    @map("expires_at")
+  tokenType         String? @map("token_type")
+  scope             String? @map("scope")
+  idToken           String? @map("id_token")
+  sessionState      String? @map("session_state")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@index([userId])
+  @@map("accounts")
+}
+
+model Session {
+  id           String   @id @default(cuid()) @map("id")
+  sessionToken String   @unique @map("session_token")
+  userId       String   @map("user_id")
+  expires      DateTime @map("expires")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("sessions")
+}
+
+model VerificationToken {
+  identifier String   @map("identifier")
+  token      String   @unique @map("token")
+  expires    DateTime @map("expires")
+
+  @@unique([identifier, token])
+  @@map("verification_tokens")
+}
+
+model SystemSetting {
+  key         String   @id @map("key")
+  value       String   @map("value")
+  updatedById String?  @map("updated_by_id")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  updatedBy User? @relation("SystemSettingUpdatedBy", fields: [updatedById], references: [id], onDelete: SetNull)
+
+  @@index([updatedById])
+  @@map("system_settings")
+}
+
+model Approach {
+  id          String   @id @default(cuid()) @map("id")
+  name        String   @unique @map("name")
+  notes       String?  @map("notes")
+  createdById String?  @map("created_by_id")
+  updatedById String?  @map("updated_by_id")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  createdBy                User?                     @relation("ApproachCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  updatedBy                User?                     @relation("ApproachUpdatedBy", fields: [updatedById], references: [id], onDelete: SetNull)
+  hypotheses               Hypothesis[]
+  creatives                Creative[]
+  landers                  Lander[]
+  launchPlans              LaunchPlan[]
+  analyzerComparisonGroups AnalyzerComparisonGroup[]
+  analyzerRuleConfigs      AnalyzerRuleConfig[]
+  targetCostConfigs        TargetCostConfig[]
+
+  @@index([createdById])
+  @@index([updatedById])
+  @@map("approaches")
+}
+
+model Hypothesis {
+  id              String   @id @default(cuid()) @map("id")
+  approachId      String   @map("approach_id")
+  name            String   @map("name")
+  description     String?  @map("description")
+  creativeConcept String?  @map("creative_concept")
+  results         String?  @map("results")
+  budget          Decimal? @map("budget") @db.Decimal(10, 2)
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  approach Approach @relation(fields: [approachId], references: [id], onDelete: Cascade)
+
+  @@index([approachId])
+  @@map("hypotheses")
+}
+
+model AnalyzerRuleConfig {
+  id                  String               @id @default(cuid()) @map("id")
+  ruleKey             AnalyzerRuleKey      @map("rule_key")
+  metricKey           AnalyzerMetricKey    @map("metric_key")
+  ruleStage           AnalyzerRuleStage    @default(WATCHDOG) @map("rule_stage")
+  scope               AnalyzerRuleScope    @map("scope")
+  scopeKey            String               @map("scope_key")
+  approachId          String?              @map("approach_id")
+  funnelKey           String?              @map("funnel_key")
+  enabled             Boolean              @default(true) @map("enabled")
+  severity            AlertSeverity        @default(WARNING) @map("severity")
+  destinationTopicKey NotificationTopicKey @default(needs_review) @map("destination_topic_key")
+  reasonCode          String?              @map("reason_code")
+  minValue            Decimal?             @map("min_value") @db.Decimal(12, 4)
+  maxValue            Decimal?             @map("max_value") @db.Decimal(12, 4)
+  spendThreshold      Decimal?             @map("spend_threshold") @db.Decimal(12, 4)
+  maxResults          Int?                 @map("max_results")
+  notes               String?              @map("notes")
+  createdAt           DateTime             @default(now()) @map("created_at")
+  updatedAt           DateTime             @updatedAt @map("updated_at")
+
+  approach Approach? @relation(fields: [approachId], references: [id], onDelete: Cascade)
+
+  @@unique([ruleKey, scopeKey])
+  @@index([scope, approachId, funnelKey])
+  @@index([destinationTopicKey, severity])
+  @@map("analyzer_rule_configs")
+}
+
+model TargetCostConfig {
+  id            String            @id @default(cuid()) @map("id")
+  scope         AnalyzerRuleScope @map("scope")
+  scopeKey      String            @map("scope_key")
+  approachId    String?           @map("approach_id")
+  funnelKey     String?           @map("funnel_key")
+  targetCostUsd Decimal           @map("target_cost_usd") @db.Decimal(12, 4)
+  notes         String?           @map("notes")
+  createdAt     DateTime          @default(now()) @map("created_at")
+  updatedAt     DateTime          @updatedAt @map("updated_at")
+
+  approach Approach? @relation(fields: [approachId], references: [id], onDelete: Cascade)
+
+  @@unique([scope, scopeKey])
+  @@index([scope, approachId, funnelKey])
+  @@map("target_cost_configs")
+}
+
+model Creative {
+  id               String          @id @default(cuid()) @map("id")
+  name             String          @map("name")
+  approachId       String?         @map("approach_id")
+  type             String?         @map("type")
+  assetUrl         String?         @map("asset_url")
+  previewUrl       String?         @map("preview_url")
+  previewData      String?         @map("preview_data") @db.Text
+  sourceUrl        String?         @map("source_url")
+  driveFileId      String?         @map("drive_file_id")
+  driveWebViewLink String?         @map("drive_web_view_link")
+  driveDownloadUrl String?         @map("drive_download_url")
+  thumbnailUrl     String?         @map("thumbnail_url")
+  sourceFilename   String?         @map("source_filename")
+  sourceMimeType   String?         @map("source_mime_type")
+  sourceByteSize   Int?            @map("source_byte_size")
+  driveFolderId    String?         @map("drive_folder_id")
+  driveFolderName  String?         @map("drive_folder_name")
+  currentStatus    LifecycleStatus @default(QUEUE) @map("current_status")
+  notes            String?         @map("notes")
+  createdById      String?         @map("created_by_id")
+  updatedById      String?         @map("updated_by_id")
+  createdAt        DateTime        @default(now()) @map("created_at")
+  updatedAt        DateTime        @updatedAt @map("updated_at")
+
+  approach         Approach?                 @relation(fields: [approachId], references: [id], onDelete: Restrict)
+  createdBy        User?                     @relation("CreativeCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  updatedBy        User?                     @relation("CreativeUpdatedBy", fields: [updatedById], references: [id], onDelete: SetNull)
+  launches         Launch[]
+  launchPlanItems  LaunchPlanItem[]
+  labelAssignments CreativeLabelAssignment[]
+
+  @@index([approachId])
+  @@index([currentStatus])
+  @@index([driveFileId])
+  @@index([driveFolderId])
+  @@index([createdById])
+  @@index([updatedById])
+  @@map("creatives")
+}
+
+model GoogleDriveIntegration {
+  id                 String    @id @default(cuid()) @map("id")
+  providerKey        String    @unique @default("google_drive") @map("provider_key")
+  googleAccountId    String?   @map("google_account_id")
+  googleAccountEmail String?   @map("google_account_email")
+  googleAccountName  String?   @map("google_account_name")
+  scope              String?   @map("scope")
+  accessToken        String?   @map("access_token") @db.Text
+  refreshToken       String?   @map("refresh_token") @db.Text
+  tokenType          String?   @map("token_type")
+  expiresAt          DateTime? @map("expires_at")
+  driveFolderId      String?   @map("drive_folder_id")
+  driveFolderName    String?   @map("drive_folder_name")
+  connectedById      String?   @map("connected_by_id")
+  updatedById        String?   @map("updated_by_id")
+  connectedAt        DateTime? @map("connected_at")
+  lastValidatedAt    DateTime? @map("last_validated_at")
+  lastErrorMessage   String?   @map("last_error_message")
+  createdAt          DateTime  @default(now()) @map("created_at")
+  updatedAt          DateTime  @updatedAt @map("updated_at")
+
+  connectedBy User? @relation("GoogleDriveIntegrationConnectedBy", fields: [connectedById], references: [id], onDelete: SetNull)
+  updatedBy   User? @relation("GoogleDriveIntegrationUpdatedBy", fields: [updatedById], references: [id], onDelete: SetNull)
+
+  @@index([connectedById])
+  @@index([updatedById])
+  @@map("google_drive_integrations")
+}
+
+model Lander {
+  id          String   @id @default(cuid()) @map("id")
+  name        String   @map("name")
+  url         String   @map("url")
+  approachId  String?  @map("approach_id")
+  notes       String?  @map("notes")
+  createdById String?  @map("created_by_id")
+  updatedById String?  @map("updated_by_id")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  approach  Approach? @relation(fields: [approachId], references: [id], onDelete: SetNull)
+  createdBy User?     @relation("LanderCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  updatedBy User?     @relation("LanderUpdatedBy", fields: [updatedById], references: [id], onDelete: SetNull)
+  launches  Launch[]
+
+  @@index([approachId])
+  @@index([createdById])
+  @@index([updatedById])
+  @@map("landers")
+}
+
+model Launch {
+  id              String          @id @default(cuid()) @map("id")
+  creativeId      String          @map("creative_id")
+  landerId        String?         @map("lander_id")
+  setupName       String          @map("setup_name")
+  budgetMode      BudgetMode      @default(ADSET) @map("budget_mode")
+  lifecycleStatus LifecycleStatus @default(QUEUE) @map("lifecycle_status")
+  launchedAt      DateTime?       @map("launched_at")
+  stoppedAt       DateTime?       @map("stopped_at")
+  notes           String?         @map("notes")
+  createdById     String?         @map("created_by_id")
+  updatedById     String?         @map("updated_by_id")
+  createdAt       DateTime        @default(now()) @map("created_at")
+  updatedAt       DateTime        @updatedAt @map("updated_at")
+
+  creative  Creative        @relation(fields: [creativeId], references: [id], onDelete: Cascade)
+  lander    Lander?         @relation(fields: [landerId], references: [id], onDelete: SetNull)
+  createdBy User?           @relation("LaunchCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  updatedBy User?           @relation("LaunchUpdatedBy", fields: [updatedById], references: [id], onDelete: SetNull)
+  metrics   LaunchMetrics[]
+
+  @@index([creativeId])
+  @@index([landerId])
+  @@index([budgetMode])
+  @@index([lifecycleStatus])
+  @@index([createdById])
+  @@index([updatedById])
+  @@map("launches")
+}
+
+model LaunchPlan {
+  id              String          @id @default(cuid()) @map("id")
+  name            String          @map("name")
+  status          LifecycleStatus @default(QUEUE) @map("status")
+  budgetMode      BudgetMode      @map("budget_mode")
+  budget          Decimal         @map("budget") @db.Decimal(10, 2)
+  campaignsCount  Int             @map("campaigns_count")
+  adsetsCount     Int             @map("adsets_count")
+  creativesCount  Int             @map("creatives_count")
+  approachId      String?         @map("approach_id")
+  namingLabel     String?         @map("naming_label")
+  createdById     String?         @map("created_by_id")
+  updatedById     String?         @map("updated_by_id")
+  createdAt       DateTime        @default(now()) @map("created_at")
+  updatedAt       DateTime        @updatedAt @map("updated_at")
+
+  approach  Approach? @relation(fields: [approachId], references: [id], onDelete: SetNull)
+  createdBy User?     @relation("LaunchPlanCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  updatedBy User?     @relation("LaunchPlanUpdatedBy", fields: [updatedById], references: [id], onDelete: SetNull)
+
+  items LaunchPlanItem[]
+
+  @@index([approachId])
+  @@index([createdById])
+  @@index([updatedById])
+  @@index([status])
+  @@map("launch_plans")
+}
+
+model LaunchPlanItem {
+  id             String   @id @default(cuid()) @map("id")
+  launchPlanId   String   @map("launch_plan_id")
+  creativeId     String   @map("creative_id")
+  campaignNaming String   @map("campaign_naming")
+  adsetNaming    String   @map("adset_naming")
+  creativeNaming String   @map("creative_naming")
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  launchPlan LaunchPlan @relation(fields: [launchPlanId], references: [id], onDelete: Cascade)
+  creative   Creative   @relation(fields: [creativeId], references: [id], onDelete: Restrict)
+
+  @@index([launchPlanId])
+  @@index([creativeId])
+  @@map("launch_plan_items")
+}
+
+model LaunchMetrics {
+  id            String   @id @default(cuid()) @map("id")
+  launchId      String   @map("launch_id")
+  cpc           Decimal? @map("cpc") @db.Decimal(10, 4)
+  ctr           Decimal? @map("ctr") @db.Decimal(10, 4)
+  cplpv         Decimal? @map("cplpv") @db.Decimal(10, 4)
+  outboundCtr   Decimal? @map("outbound_ctr") @db.Decimal(10, 4)
+  cpm           Decimal? @map("cpm") @db.Decimal(10, 4)
+  clicks        Int?     @map("clicks")
+  cr            Decimal? @map("cr") @db.Decimal(10, 4)
+  results       Int?     @map("results")
+  costPerResult Decimal? @map("cost_per_result") @db.Decimal(10, 4)
+  capturedAt    DateTime @default(now()) @map("captured_at")
+  createdById   String?  @map("created_by_id")
+  updatedById   String?  @map("updated_by_id")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  launch    Launch @relation(fields: [launchId], references: [id], onDelete: Cascade)
+  createdBy User?  @relation("LaunchMetricsCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  updatedBy User?  @relation("LaunchMetricsUpdatedBy", fields: [updatedById], references: [id], onDelete: SetNull)
+
+  @@index([launchId, capturedAt])
+  @@index([createdById])
+  @@index([updatedById])
+  @@map("launch_metrics")
+}
+
+model CreativeLabel {
+  id        String           @id @default(cuid()) @map("id")
+  key       CreativeLabelKey @unique @map("key")
+  name      String           @map("name")
+  createdAt DateTime         @default(now()) @map("created_at")
+  updatedAt DateTime         @updatedAt @map("updated_at")
+
+  assignments CreativeLabelAssignment[]
+
+  @@map("creative_labels")
+}
+
+model CreativeLabelAssignment {
+  creativeId      String   @map("creative_id")
+  creativeLabelId String   @map("creative_label_id")
+  assignedById    String?  @map("assigned_by_id")
+  assignedAt      DateTime @default(now()) @map("assigned_at")
+
+  creative      Creative      @relation(fields: [creativeId], references: [id], onDelete: Cascade)
+  creativeLabel CreativeLabel @relation(fields: [creativeLabelId], references: [id], onDelete: Cascade)
+  assignedBy    User?         @relation("CreativeLabelAssignmentAssignedBy", fields: [assignedById], references: [id], onDelete: SetNull)
+
+  @@id([creativeId, creativeLabelId])
+  @@index([creativeLabelId])
+  @@index([assignedById])
+  @@map("creative_label_assignments")
+}
+
+model ImportRun {
+  id                    String           @id @default(cuid()) @map("id")
+  adAccountId           String?          @map("ad_account_id")
+  sourceType            ImportSourceType @default(CSV_UPLOAD) @map("source_type")
+  sourceFilename        String           @map("source_filename")
+  sourceStorageKey      String?          @map("source_storage_key")
+  sourceFileHash        String?          @map("source_file_hash")
+  sourceFormatKey       String?          @map("source_format_key")
+  sourceContentType     String?          @map("source_content_type")
+  sourceByteSize        Int?             @map("source_byte_size")
+  adSetFileStorageKey   String?          @map("ad_set_file_storage_key")
+  adSetFileHash         String?          @map("ad_set_file_hash")
+  campaignFileStorageKey String?         @map("campaign_file_storage_key")
+  campaignFileHash      String?          @map("campaign_file_hash")
+  reportingWindowStart  DateTime?        @map("reporting_window_start")
+  reportingWindowEnd    DateTime?        @map("reporting_window_end")
+  processingStatus      ImportRunStatus  @default(RECEIVED) @map("processing_status")
+  isActive              Boolean          @default(true) @map("is_active")
+  replacedAt            DateTime?        @map("replaced_at")
+  replacedByImportRunId String?          @map("replaced_by_import_run_id")
+  receivedAt            DateTime         @default(now()) @map("received_at")
+  processingStartedAt   DateTime?        @map("processing_started_at")
+  processingFinishedAt  DateTime?        @map("processing_finished_at")
+  analyzerStartedAt     DateTime?        @map("analyzer_started_at")
+  analyzerFinishedAt    DateTime?        @map("analyzer_finished_at")
+  rawRowsCount          Int              @default(0) @map("raw_rows_count")
+  normalizedRowsCount   Int              @default(0) @map("normalized_rows_count")
+  errorSummary          String?          @map("error_summary")
+  errorDetails          Json?            @map("error_details")
+  uploadedById          String?          @map("uploaded_by_id")
+  createdAt             DateTime         @default(now()) @map("created_at")
+  updatedAt             DateTime         @updatedAt @map("updated_at")
+
+  adAccount              AdAccount?                @relation(fields: [adAccountId], references: [id], onDelete: SetNull)
+  replacedByRun          ImportRun?                @relation("ImportRunReplacement", fields: [replacedByImportRunId], references: [id], onDelete: SetNull)
+  replacementRuns        ImportRun[]               @relation("ImportRunReplacement")
+  uploadedBy             User?                     @relation("ImportRunUploadedBy", fields: [uploadedById], references: [id], onDelete: SetNull)
+  rawRows                ImportRawRow[]
+  normalizedRows         ImportNormalizedRow[]
+  comparisonGroups       AnalyzerComparisonGroup[]
+  analyzerResults        AnalyzerResult[]
+  alertEvents            AlertEvent[]
+  notificationDigests    NotificationDigest[]
+  notificationDeliveries NotificationDelivery[]
+
+  @@index([sourceFileHash])
+  @@index([adAccountId])
+  @@index([isActive])
+  @@index([processingStatus])
+  @@index([receivedAt])
+  @@index([uploadedById])
+  @@map("import_runs")
+}
+
+model ImportRawRow {
+  id          String   @id @default(cuid()) @map("id")
+  importRunId String   @map("import_run_id")
+  rowNumber   Int      @map("row_number")
+  rowHash     String?  @map("row_hash")
+  rawPayload  Json     @map("raw_payload")
+  parseError  String?  @map("parse_error")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  importRun      ImportRun             @relation(fields: [importRunId], references: [id], onDelete: Cascade)
+  normalizedRows ImportNormalizedRow[]
+
+  @@unique([importRunId, rowNumber])
+  @@index([rowHash])
+  @@map("import_raw_rows")
+}
+
+model ImportNormalizedRow {
+  id                  String      @id @default(cuid()) @map("id")
+  importRunId         String      @map("import_run_id")
+  adAccountId         String?     @map("ad_account_id")
+  isActive            Boolean     @default(true) @map("is_active")
+  rawRowId            String?     @map("raw_row_id")
+  importLevel         ImportLevel @default(AD) @map("import_level")
+  campaignId          String?     @map("campaign_id")
+  adSetId             String?     @map("ad_set_id")
+  adId                String?     @map("ad_id")
+  sourceRowNumber     Int?        @map("source_row_number")
+  reportDate          DateTime?   @map("report_date")
+  approachName        String?     @map("approach_name")
+  campaignName        String?     @map("campaign_name")
+  adsetName           String?     @map("adset_name")
+  adName              String?     @map("ad_name")
+  globalGroupKey      String?     @map("global_group_key")
+  comparisonGroupKey  String?     @map("comparison_group_key")
+  hasResults          Boolean     @default(false) @map("has_results")
+  results             Int?        @map("results")
+  spend               Decimal?    @map("spend") @db.Decimal(12, 4)
+  impressions         Int?        @map("impressions")
+  clicks              Int?        @map("clicks")
+  cpc                 Decimal?    @map("cpc") @db.Decimal(12, 4)
+  ctr                 Decimal?    @map("ctr") @db.Decimal(12, 4)
+  cpm                 Decimal?    @map("cpm") @db.Decimal(12, 4)
+  costPerResult       Decimal?    @map("cost_per_result") @db.Decimal(12, 4)
+  intervalResults     Int?        @map("interval_results")
+  intervalSpend       Decimal?    @map("interval_spend") @db.Decimal(12, 4)
+  intervalImpressions Int?        @map("interval_impressions")
+  intervalClicks      Int?        @map("interval_clicks")
+  previousRowId       String?     @map("previous_row_id")
+  normalizedPayload   Json        @map("normalized_payload")
+  normalizationError  String?     @map("normalization_error")
+  createdAt           DateTime    @default(now()) @map("created_at")
+  updatedAt           DateTime    @updatedAt @map("updated_at")
+
+  importRun       ImportRun            @relation(fields: [importRunId], references: [id], onDelete: Cascade)
+  rawRow          ImportRawRow?        @relation(fields: [rawRowId], references: [id], onDelete: SetNull)
+  previousRow     ImportNormalizedRow?  @relation("NormalizedRowHistory", fields: [previousRowId], references: [id], onDelete: SetNull)
+  subsequentRows  ImportNormalizedRow[] @relation("NormalizedRowHistory")
+  analyzerResults AnalyzerResult[]
+
+  @@index([importRunId])
+  @@index([adAccountId, reportDate, importLevel, isActive])
+  @@index([isActive])
+  @@index([rawRowId])
+  @@index([previousRowId])
+  @@index([comparisonGroupKey])
+  @@index([globalGroupKey])
+  @@index([reportDate])
+  @@index([campaignId])
+  @@index([adSetId])
+  @@index([importLevel])
+  @@map("import_normalized_rows")
+}
+
+model AnalyzerComparisonGroup {
+  id              String                   @id @default(cuid()) @map("id")
+  importRunId     String                   @map("import_run_id")
+  approachId      String?                  @map("approach_id")
+  groupKey        String                   @map("group_key")
+  groupLabel      String                   @map("group_label")
+  globalGroupKey  String?                  @map("global_group_key")
+  rowCount        Int                      @default(0) @map("row_count")
+  resultRowCount  Int                      @default(0) @map("result_row_count")
+  evaluationMode  AnalyzerEvaluationMode   @map("evaluation_mode")
+  confidenceLevel AnalyzerConfidenceLevel? @map("confidence_level")
+  maturityReached Boolean                  @default(false) @map("maturity_reached")
+  maturitySummary String?                  @map("maturity_summary")
+  createdAt       DateTime                 @default(now()) @map("created_at")
+  updatedAt       DateTime                 @updatedAt @map("updated_at")
+
+  importRun       ImportRun        @relation(fields: [importRunId], references: [id], onDelete: Cascade)
+  approach        Approach?        @relation(fields: [approachId], references: [id], onDelete: SetNull)
+  analyzerResults AnalyzerResult[]
+  alertEvents     AlertEvent[]
+
+  @@unique([importRunId, groupKey])
+  @@index([approachId])
+  @@index([globalGroupKey])
+  @@index([evaluationMode])
+  @@map("analyzer_comparison_groups")
+}
+
+model AnalyzerResult {
+  id                String                  @id @default(cuid()) @map("id")
+  importRunId       String                  @map("import_run_id")
+  comparisonGroupId String                  @map("comparison_group_id")
+  normalizedRowId   String?                 @map("normalized_row_id")
+  subjectKey        String                  @map("subject_key")
+  subjectLabel      String                  @map("subject_label")
+  rank              Int?                    @map("rank")
+  score             Decimal?                @map("score") @db.Decimal(12, 4)
+  evaluationMode    AnalyzerEvaluationMode  @map("evaluation_mode")
+  confidenceLevel   AnalyzerConfidenceLevel @map("confidence_level")
+  maturityReached   Boolean                 @default(false) @map("maturity_reached")
+  resultsPresent    Boolean                 @default(false) @map("results_present")
+  summary           String?                 @map("summary")
+  resultPayload     Json?                   @map("result_payload")
+  createdAt         DateTime                @default(now()) @map("created_at")
+  updatedAt         DateTime                @updatedAt @map("updated_at")
+
+  importRun       ImportRun               @relation(fields: [importRunId], references: [id], onDelete: Cascade)
+  comparisonGroup AnalyzerComparisonGroup @relation(fields: [comparisonGroupId], references: [id], onDelete: Cascade)
+  normalizedRow   ImportNormalizedRow?    @relation(fields: [normalizedRowId], references: [id], onDelete: SetNull)
+  alertEvents     AlertEvent[]
+
+  @@unique([comparisonGroupId, subjectKey])
+  @@index([importRunId])
+  @@index([normalizedRowId])
+  @@index([evaluationMode, confidenceLevel])
+  @@map("analyzer_results")
+}
+
+model AlertEvent {
+  id                   String                   @id @default(cuid()) @map("id")
+  importRunId          String                   @map("import_run_id")
+  comparisonGroupId    String?                  @map("comparison_group_id")
+  analyzerResultId     String?                  @map("analyzer_result_id")
+  notificationDigestId String?                  @map("notification_digest_id")
+  kind                 AnalyzerAlertKind        @map("kind")
+  severity             AlertSeverity            @default(WARNING) @map("severity")
+  reasonCode           String?                  @map("reason_code")
+  dispatchMode         NotificationDispatchMode @default(IMMEDIATE) @map("dispatch_mode")
+  evaluationMode       AnalyzerEvaluationMode?  @map("evaluation_mode")
+  confidenceLevel      AnalyzerConfidenceLevel? @map("confidence_level")
+  maturityReached      Boolean                  @default(false) @map("maturity_reached")
+  cooldownKey          String?                  @map("cooldown_key")
+  destinationTopicKey  String?                  @map("destination_topic_key")
+  title                String                   @map("title")
+  summary              String                   @map("summary")
+  alertPayload         Json?                    @map("alert_payload")
+  createdAt            DateTime                 @default(now()) @map("created_at")
+  updatedAt            DateTime                 @updatedAt @map("updated_at")
+
+  importRun              ImportRun                @relation(fields: [importRunId], references: [id], onDelete: Cascade)
+  comparisonGroup        AnalyzerComparisonGroup? @relation(fields: [comparisonGroupId], references: [id], onDelete: SetNull)
+  analyzerResult         AnalyzerResult?          @relation(fields: [analyzerResultId], references: [id], onDelete: SetNull)
+  notificationDigest     NotificationDigest?      @relation(fields: [notificationDigestId], references: [id], onDelete: SetNull)
+  notificationDeliveries NotificationDelivery[]
+
+  @@index([importRunId])
+  @@index([comparisonGroupId])
+  @@index([analyzerResultId])
+  @@index([notificationDigestId])
+  @@index([kind, severity])
+  @@index([destinationTopicKey])
+  @@index([reasonCode])
+  @@index([dispatchMode, createdAt])
+  @@map("alert_events")
+}
+
+model NotificationDigest {
+  id                  String                   @id @default(cuid()) @map("id")
+  importRunId         String?                  @map("import_run_id")
+  channel             NotificationChannel      @default(TELEGRAM) @map("channel")
+  destinationTopicKey NotificationTopicKey     @map("destination_topic_key")
+  dispatchMode        NotificationDispatchMode @default(DIGEST_30M) @map("dispatch_mode")
+  digestKey           String                   @unique @map("digest_key")
+  windowStart         DateTime                 @map("window_start")
+  windowEnd           DateTime                 @map("window_end")
+  status              NotificationDigestStatus @default(QUEUED) @map("status")
+  alertCount          Int                      @default(0) @map("alert_count")
+  importRunCount      Int                      @default(0) @map("import_run_count")
+  messageTitle        String?                  @map("message_title")
+  messageBody         String?                  @map("message_body")
+  builtAt             DateTime?                @map("built_at")
+  sentAt              DateTime?                @map("sent_at")
+  failedAt            DateTime?                @map("failed_at")
+  retryAfterUntil     DateTime?                @map("retry_after_until")
+  telegramChatId      String?                  @map("telegram_chat_id")
+  telegramThreadId    Int?                     @map("telegram_thread_id")
+  providerMessageId   String?                  @map("provider_message_id")
+  errorMessage        String?                  @map("error_message")
+  createdAt           DateTime                 @default(now()) @map("created_at")
+  updatedAt           DateTime                 @updatedAt @map("updated_at")
+
+  importRun              ImportRun?             @relation(fields: [importRunId], references: [id], onDelete: SetNull)
+  alertEvents            AlertEvent[]
+  notificationDeliveries NotificationDelivery[]
+
+  @@index([importRunId])
+  @@index([destinationTopicKey, windowStart, windowEnd])
+  @@index([status, retryAfterUntil, windowEnd])
+  @@map("notification_digests")
+}
+
+model StatsEntityDaily {
+  id                String      @id @default(cuid()) @map("id")
+  entityKey         String      @unique @map("entity_key")
+  importLevel       ImportLevel @map("import_level")
+  campaignId        String?     @map("campaign_id")
+  adSetId           String?     @map("ad_set_id")
+  adId              String?     @map("ad_id")
+  campaignName      String?     @map("campaign_name")
+  adsetName         String?     @map("adset_name")
+  adName            String?     @map("ad_name")
+  approachName      String?     @map("approach_name")
+  date              DateTime    @map("date") @db.Date
+  spend             Decimal     @default(0) @map("spend") @db.Decimal(12, 4)
+  results           Int         @default(0) @map("results")
+  impressions       Int         @default(0) @map("impressions")
+  clicks            Int         @default(0) @map("clicks")
+  normalizedPayload Json?       @map("normalized_payload")
+  updatedAt         DateTime    @updatedAt @map("updated_at")
+
+  @@index([importLevel])
+  @@map("stats_entity_daily")
+}
+
+model StatsEntityCumulative {
+  id                String      @id @default(cuid()) @map("id")
+  entityKey         String      @unique @map("entity_key")
+  importLevel       ImportLevel @map("import_level")
+  campaignId        String?     @map("campaign_id")
+  adSetId           String?     @map("ad_set_id")
+  adId              String?     @map("ad_id")
+  campaignName      String?     @map("campaign_name")
+  adsetName         String?     @map("adset_name")
+  adName            String?     @map("ad_name")
+  approachName      String?     @map("approach_name")
+  totalSpend        Decimal     @default(0) @map("total_spend") @db.Decimal(12, 4)
+  totalResults      Int         @default(0) @map("total_results")
+  totalImpressions  Int         @default(0) @map("total_impressions")
+  totalClicks       Int         @default(0) @map("total_clicks")
+  normalizedPayload Json?       @map("normalized_payload")
+  updatedAt         DateTime    @updatedAt @map("updated_at")
+
+  @@index([importLevel])
+  @@map("stats_entity_cumulative")
+}
+
+model NotificationDelivery {
+  id                   String                     @id @default(cuid()) @map("id")
+  importRunId          String?                    @map("import_run_id")
+  alertEventId         String?                    @map("alert_event_id")
+  notificationDigestId String?                    @map("notification_digest_id")
+  channel              NotificationChannel        @default(TELEGRAM) @map("channel")
+  deliveryStatus       NotificationDeliveryStatus @default(PENDING) @map("delivery_status")
+  destinationTopicKey  String?                    @map("destination_topic_key")
+  telegramChatId       String?                    @map("telegram_chat_id")
+  telegramThreadId     Int?                       @map("telegram_thread_id")
+  attemptedAt          DateTime?                  @map("attempted_at")
+  deliveredAt          DateTime?                  @map("delivered_at")
+  failedAt             DateTime?                  @map("failed_at")
+  providerMessageId    String?                    @map("provider_message_id")
+  errorMessage         String?                    @map("error_message")
+  providerPayload      Json?                      @map("provider_payload")
+  createdAt            DateTime                   @default(now()) @map("created_at")
+  updatedAt            DateTime                   @updatedAt @map("updated_at")
+
+  importRun          ImportRun?          @relation(fields: [importRunId], references: [id], onDelete: SetNull)
+  alertEvent         AlertEvent?         @relation(fields: [alertEventId], references: [id], onDelete: SetNull)
+  notificationDigest NotificationDigest? @relation(fields: [notificationDigestId], references: [id], onDelete: SetNull)
+
+  @@index([importRunId])
+  @@index([alertEventId])
+  @@index([notificationDigestId])
+  @@index([channel, deliveryStatus])
+  @@index([destinationTopicKey])
+  @@map("notification_deliveries")
+}
+
+model AdAccount {
+  id         String    @id @default(cuid()) @map("id")
+  accountId  String    @unique @map("account_id")
+  tag        String    @map("tag")
+  ownerId    String?   @map("owner_id")
+  isActive   Boolean   @default(true) @map("is_active")
+  createdAt  DateTime  @default(now()) @map("created_at")
+  updatedAt  DateTime  @updatedAt @map("updated_at")
+
+  importRuns ImportRun[]
+
+  @@index([isActive])
+  @@map("ad_accounts")
+}

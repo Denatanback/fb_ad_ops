@@ -1,0 +1,71 @@
+# Production deployment compose file.
+# Usage:
+#   1. Copy .env.example to .env and fill in production values.
+#   2. docker compose -f docker-compose.production.yml up --build -d
+#   3. docker compose -f docker-compose.production.yml exec app prisma migrate deploy
+#   4. docker compose -f docker-compose.production.yml exec app node prisma/seed.cjs
+#
+# After the first deploy, steps 3-4 are only needed when there are new migrations
+# or when you need to update the seeded admin account.
+
+services:
+  app:
+    build:
+      context: .
+      target: production
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      APP_BASE_URL: ${APP_BASE_URL}
+      AUTH_SECRET: ${AUTH_SECRET}
+      AUTH_URL: ${AUTH_URL}
+      AUTH_TRUST_HOST: ${AUTH_TRUST_HOST}
+      NEXTAUTH_URL: ${AUTH_URL}
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}?schema=public
+      DEFAULT_ADMIN_EMAIL: ${DEFAULT_ADMIN_EMAIL}
+      DEFAULT_ADMIN_PASSWORD: ${DEFAULT_ADMIN_PASSWORD}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
+      GOOGLE_DRIVE_FOLDER_ID: ${GOOGLE_DRIVE_FOLDER_ID:-}
+      GOOGLE_DRIVE_OAUTH_REDIRECT_URI: ${GOOGLE_DRIVE_OAUTH_REDIRECT_URI:-}
+      IMPORT_UPLOADS_DIR: ${IMPORT_UPLOADS_DIR:-./storage/imports}
+      INTERNAL_IMPORT_API_KEY: ${INTERNAL_IMPORT_API_KEY}
+      NEXT_TELEMETRY_DISABLED: "1"
+      NODE_ENV: production
+      CRON_SECRET: ${CRON_SECRET}
+      TELEGRAM_ALERTS_ENABLED: ${TELEGRAM_ALERTS_ENABLED:-false}
+      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN:-}
+      TELEGRAM_CHAT_ID: ${TELEGRAM_CHAT_ID:-}
+      TELEGRAM_TOPIC_BOT_TEST_ID: ${TELEGRAM_TOPIC_BOT_TEST_ID:-}
+      TELEGRAM_TOPIC_CONVERSIONS_ID: ${TELEGRAM_TOPIC_CONVERSIONS_ID:-}
+      TELEGRAM_TOPIC_IMPORT_ERRORS_TECH_ID: ${TELEGRAM_TOPIC_IMPORT_ERRORS_TECH_ID:-}
+      TELEGRAM_TOPIC_NEEDS_REVIEW_ID: ${TELEGRAM_TOPIC_NEEDS_REVIEW_ID:-}
+      TELEGRAM_TOPIC_STRONG_SIGNALS_ID: ${TELEGRAM_TOPIC_STRONG_SIGNALS_ID:-}
+      TELEGRAM_TOPIC_PASTLIFE_ID: ${TELEGRAM_TOPIC_PASTLIFE_ID:-}
+      TELEGRAM_TOPIC_SOULMATE_ID: ${TELEGRAM_TOPIC_SOULMATE_ID:-}
+      TELEGRAM_TOPIC_IQTEST_ID: ${TELEGRAM_TOPIC_IQTEST_ID:-}
+    ports:
+      - "3000:3000"
+    volumes:
+      - app_uploads:/app/storage
+    restart: unless-stopped
+
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_USER: ${POSTGRES_USER}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    restart: unless-stopped
+
+volumes:
+  app_uploads:
+  postgres_data:

@@ -1,0 +1,23 @@
+# Changed Files
+
+- `src/server/auth/config.ts` - implemented credentials-based user lookup, password verification, and session/token role wiring.
+- `src/server/auth/session.ts` - added server-side auth/session helpers for protected routes and future role checks.
+- `src/server/auth/password.ts` - added safe scrypt-based password hashing and verification helpers.
+- `src/types/next-auth.d.ts` - extended session, user, and JWT typing with `id` and `role`.
+- `src/lib/auth/roles.ts` - added role normalization helpers for Prisma/Auth.js integration.
+- `src/middleware.ts` - added route protection and unauthenticated redirect behavior for the internal workspace.
+- `src/components/auth/sign-in-form.tsx` - added the working client sign-in form.
+- `src/components/auth/sign-out-button.tsx` - added the sign-out action for authenticated users.
+- `src/components/layout/app-shell.tsx` - passed the authenticated session into the workspace shell.
+- `src/components/layout/topbar.tsx` - added session-aware user display and sign-out controls.
+- `src/app/(workspace)/layout.tsx` - enforced server-side auth at the workspace layout boundary.
+- `src/app/sign-in/page.tsx` - replaced the placeholder auth page with the working MVP sign-in screen.
+- `src/app/unauthorized/page.tsx` - added a minimal unauthorized page for future role-gated routes.
+- `src/app/globals.css` - added auth-form, user-chip, and sign-out related styling.
+- `src/lib/navigation.ts` - removed the sign-in item from the protected workspace navigation.
+- `prisma/seed.cjs` - extended the seed flow to create or update the first admin user securely.
+- `package.json` - added the Prisma migrate deploy script used by the auth bootstrap instructions.
+- `.env.example` - clarified that the default admin env vars are used by the seed script.
+- `README.md` - documented the first-admin bootstrap and sign-in setup steps.
+- `docs/plans/2026-03-19_1648-step-06-auth-and-protected-access.md` - recorded the pre-change implementation plan for this task.
+- `docs/summary/2026-03-19_1648-step-06-auth-and-protected-access.md` - recorded the completion summary for this task.

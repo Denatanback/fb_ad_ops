@@ -1,0 +1,22 @@
+# Step 18 Changed Files
+
+- `prisma/schema.prisma` — added `GoogleDriveIntegration` and external media reference fields on `Creative`.
+- `prisma/migrations/202603200423_add_google_drive_integration/migration.sql` — added the schema migration for Google Drive integration and creative media reference columns.
+- `src/server/integrations/google-drive/config.ts` — added env/config helpers for Google OAuth and Drive folder settings.
+- `src/server/integrations/google-drive/oauth.ts` — added signed OAuth state handling, auth URL generation, token exchange, token refresh, and user-info fetch helpers.
+- `src/server/integrations/google-drive/service.ts` — added Drive integration persistence/status logic and the reusable server-side upload service.
+- `src/app/api/integrations/google-drive/connect/route.ts` — added the protected route that starts the Google OAuth flow.
+- `src/app/api/integrations/google-drive/callback/route.ts` — added the OAuth callback route that finalizes the Drive connection.
+- `src/app/(workspace)/admin/google-drive/page.tsx` — added the protected internal admin page for Google Drive status and connection flow.
+- `src/middleware.ts` — allowed the Google OAuth callback route to reach its handler cleanly.
+- `src/lib/navigation.ts` — added the hidden admin navigation entry for the Google Drive integration page.
+- `src/app/(workspace)/creatives/actions.ts` — extended creative create/update handling for external media reference fields.
+- `src/components/creatives/creative-form.tsx` — added the link-first creative media fields to the form.
+- `src/app/(workspace)/creatives/new/page.tsx` — wired the new media-reference defaults into creative creation.
+- `src/app/(workspace)/creatives/[creativeId]/edit/page.tsx` — wired the new media-reference fields into creative editing.
+- `src/app/(workspace)/creatives/[creativeId]/page.tsx` — added media reference visibility to the creative detail page.
+- `.env.example` — added Google OAuth / Drive env placeholders.
+- `README.md` — documented the Google Drive integration setup and preview-first media policy.
+- `docs/dev/decisions.md` — recorded the MVP decision to use admin-controlled personal Google Drive with preview-first media storage.
+- `docs/dev/tech-foundation.md` — documented the Google Drive env/config additions and media handling direction.
+- `docs/product/entities.md` — updated the Creative field guidance to include external media reference fields.

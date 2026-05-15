@@ -1,0 +1,63 @@
+services:
+  app:
+    build:
+      context: .
+      target: development
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      NODE_ENV: development
+      NEXT_TELEMETRY_DISABLED: "1"
+      APP_BASE_URL: ${APP_BASE_URL:-https://capsuled.space}
+      AUTH_SECRET: ${AUTH_SECRET}
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}?schema=public
+      DEFAULT_ADMIN_EMAIL: ${DEFAULT_ADMIN_EMAIL:-admin@example.local}
+      DEFAULT_ADMIN_PASSWORD: ${DEFAULT_ADMIN_PASSWORD:-change-me}
+      IMPORT_UPLOADS_DIR: /app/storage/imports
+      INTERNAL_IMPORT_API_KEY: ${INTERNAL_IMPORT_API_KEY:-local-import-test-key}
+      CRON_SECRET: ${CRON_SECRET:-local-digest-cron-secret}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
+      GOOGLE_DRIVE_FOLDER_ID: ${GOOGLE_DRIVE_FOLDER_ID:-}
+      GOOGLE_DRIVE_OAUTH_REDIRECT_URI: ${GOOGLE_DRIVE_OAUTH_REDIRECT_URI:-}
+      TELEGRAM_ALERTS_ENABLED: ${TELEGRAM_ALERTS_ENABLED:-false}
+      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN:-}
+      TELEGRAM_CHAT_ID: ${TELEGRAM_CHAT_ID:-}
+      TELEGRAM_TOPIC_CONVERSIONS_ID: ${TELEGRAM_TOPIC_CONVERSIONS_ID:-}
+      TELEGRAM_TOPIC_NEEDS_REVIEW_ID: ${TELEGRAM_TOPIC_NEEDS_REVIEW_ID:-}
+      TELEGRAM_TOPIC_STRONG_SIGNALS_ID: ${TELEGRAM_TOPIC_STRONG_SIGNALS_ID:-}
+      TELEGRAM_TOPIC_IMPORT_ERRORS_TECH_ID: ${TELEGRAM_TOPIC_IMPORT_ERRORS_TECH_ID:-}
+      TELEGRAM_TOPIC_BOT_TEST_ID: ${TELEGRAM_TOPIC_BOT_TEST_ID:-}
+    command: sh -lc "if [ ! -d node_modules/next ]; then npm ci; fi && npm run prisma:generate && npm run dev -- --hostname 0.0.0.0"
+    ports:
+      - "3000:3000"
+    volumes:
+      - .:/app
+      - app_node_modules:/app/node_modules
+      - next_cache:/app/.next
+      - app_uploads:/app/storage
+    restart: unless-stopped
+
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    restart: unless-stopped
+
+volumes:
+  app_node_modules:
+  next_cache:
+  app_uploads:
+  postgres_data:

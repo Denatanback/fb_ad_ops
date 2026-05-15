@@ -1,0 +1,21 @@
+# Step 08 Changed Files
+
+- `src/lib/creative-taxonomy.ts` - Added shared lifecycle-status and creative-label metadata plus parsing helpers for filters and forms.
+- `src/lib/formatters.ts` - Added small Russian-friendly formatting helpers for dates and optional text.
+- `src/server/services/approaches.ts` - Added Prisma read helpers for the Approaches list, options, and summary counts.
+- `src/server/services/creatives.ts` - Added Prisma read helpers for creative list filters, summaries, form context, and detail pages.
+- `src/app/(workspace)/approaches/actions.ts` - Added the server action for minimal Approach creation with audit fields.
+- `src/app/(workspace)/creatives/actions.ts` - Added server actions for Creative create/update, validation, audit wiring, and normalized label assignment sync.
+- `src/components/workspace/flash-message.tsx` - Added a reusable success/error message banner.
+- `src/components/workspace/label-chip.tsx` - Added a reusable chip for normalized creative labels.
+- `src/components/workspace/status-badge.tsx` - Added a reusable badge for lifecycle statuses.
+- `src/components/approaches/approach-create-form.tsx` - Added the minimal create form for Approaches.
+- `src/components/creatives/creative-filters.tsx` - Added the GET-based filter/search form for the Creatives list page.
+- `src/components/creatives/creative-form.tsx` - Added the shared create/edit form used by Creative new and edit routes.
+- `src/app/(workspace)/approaches/page.tsx` - Replaced the placeholder page with a working Approaches list and create view.
+- `src/app/(workspace)/creatives/page.tsx` - Replaced the placeholder page with a working Creatives list, filters, and action entry points.
+- `src/app/(workspace)/creatives/new/page.tsx` - Added the Creative create page.
+- `src/app/(workspace)/creatives/[creativeId]/page.tsx` - Added the Creative details page.
+- `src/app/(workspace)/creatives/[creativeId]/edit/page.tsx` - Added the Creative edit page.
+- `src/app/(workspace)/page.tsx` - Updated the dashboard shortcut copy so it matches the now-working Creatives area.
+- `src/app/globals.css` - Added compact internal-tool styles for forms, filters, tables, badges, detail sections, and empty states.

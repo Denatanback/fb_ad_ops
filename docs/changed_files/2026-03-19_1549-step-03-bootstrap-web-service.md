@@ -1,0 +1,35 @@
+# Changed Files
+
+- `package.json` - replaced placeholder scripts with a real Next.js, Prisma, and runtime dependency setup.
+- `package-lock.json` - recorded the installed dependency graph for the bootstrap.
+- `tsconfig.json` - added TypeScript and path alias configuration for the app.
+- `next-env.d.ts` - added the standard Next.js TypeScript environment file.
+- `next.config.mjs` - added the base Next.js configuration.
+- `.env.example` - documented the local environment variables expected by the bootstrap.
+- `prisma/schema.prisma` - added the initial Prisma datasource and client generator wiring.
+- `README.md` - updated the repo start instructions to match the new app and reporting workflow.
+- `src/app/layout.tsx` - added the root layout, metadata, and theme boot script.
+- `src/app/globals.css` - added the dark-first design tokens, light theme overrides, shell layout styles, and dashboard styling.
+- `src/app/(workspace)/layout.tsx` - added the shared workspace shell wrapper.
+- `src/app/(workspace)/page.tsx` - added the placeholder internal dashboard page.
+- `src/app/sign-in/page.tsx` - added the auth placeholder screen.
+- `src/app/api/health/route.ts` - added a basic health endpoint for local verification.
+- `src/app/api/auth/[...nextauth]/route.ts` - added the Auth.js route handler foundation.
+- `src/components/layout/app-shell.tsx` - added the main app shell composition.
+- `src/components/layout/sidebar.tsx` - added the sidebar navigation placeholder.
+- `src/components/layout/topbar.tsx` - added the topbar and theme toggle placement.
+- `src/components/providers/theme-provider.tsx` - added the client-side theme state and persistence logic.
+- `src/components/ui/theme-toggle.tsx` - added the light/dark mode toggle control.
+- `src/lib/navigation.ts` - added top-level workspace navigation definitions.
+- `src/lib/theme.ts` - added shared theme constants and typing.
+- `src/lib/auth/roles.ts` - added the `admin` / `member` role foundation.
+- `src/server/db/client.ts` - added the shared Prisma client instance.
+- `src/server/auth/config.ts` - added the placeholder Auth.js configuration for future credential flows.
+- `src/server/auth/session.ts` - added simple session guard helpers for future protected routes.
+- `src/types/next-auth.d.ts` - added auth session and JWT role typing.
+- `src/features/auth/.gitkeep` - created the future auth feature boundary.
+- `src/features/reporting/.gitkeep` - created the future reporting feature boundary.
+- `src/features/users/.gitkeep` - created the future users feature boundary.
+- `src/server/users/.gitkeep` - created the future users server boundary.
+- `docs/plans/2026-03-19_1549-step-03-bootstrap-web-service.md` - recorded the pre-change implementation plan for this task.
+- `docs/summary/2026-03-19_1549-step-03-bootstrap-web-service.md` - recorded the completion summary for this task.
