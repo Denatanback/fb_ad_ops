@@ -166,16 +166,16 @@ export function DashboardFilters({
   }
 
   const presets: Array<{ label: string; offsetDays: number; spanDays: number }> = [
-    { label: "РЎРµРіРѕРґРЅСЏ", offsetDays: 0, spanDays: 1 },
-    { label: "Р’С‡РµСЂР°", offsetDays: 1, spanDays: 1 },
-    { label: "7 РґРЅРµР№", offsetDays: 6, spanDays: 7 },
-    { label: "30 РґРЅРµР№", offsetDays: 29, spanDays: 30 },
+    { label: "Сегодня", offsetDays: 0, spanDays: 1 },
+    { label: "Вчера", offsetDays: 1, spanDays: 1 },
+    { label: "7 дней", offsetDays: 6, spanDays: 7 },
+    { label: "30 дней", offsetDays: 29, spanDays: 30 },
   ];
 
   const selectedLabel =
     validSelectedCabinetIds.length === 0
-      ? "All cabinets"
-      : `${validSelectedCabinetIds.length} cabinet${validSelectedCabinetIds.length === 1 ? "" : "s"} selected`;
+      ? "Все кабинеты"
+      : `${validSelectedCabinetIds.length} выбрано`;
 
   return (
     <div className="dashboard-filters">
@@ -199,7 +199,7 @@ export function DashboardFilters({
         <div className="dashboard-filters__row">
           <div className="dashboard-filters__group">
             <label className="field__label" htmlFor="df-from">
-              РћС‚
+              С
             </label>
             <input
               className="auth-input auth-input--compact"
@@ -211,7 +211,7 @@ export function DashboardFilters({
           </div>
           <div className="dashboard-filters__group">
             <label className="field__label" htmlFor="df-to">
-              Р”Рѕ
+              По
             </label>
             <input
               className="auth-input auth-input--compact"
@@ -225,7 +225,7 @@ export function DashboardFilters({
           {owners.length > 0 && (
             <div className="dashboard-filters__group">
               <label className="field__label" htmlFor="df-owner">
-                Owner
+                Владелец
               </label>
               <select
                 className="auth-input auth-input--compact"
@@ -234,55 +234,57 @@ export function DashboardFilters({
                 onChange={(event) => handleOwnerChange(event.currentTarget.value)}
                 value={currentOwnerId}
               >
-                <option value="">All</option>
+                <option value="">Все</option>
                 {owners.map((owner) => (
                   <option key={owner} value={owner}>
                     {owner}
                   </option>
                 ))}
               </select>
-              {currentOwnerId ? <span className="dashboard-filter-helper">Showing cabinets for selected owner.</span> : null}
+              {currentOwnerId ? (
+                <span className="dashboard-filter-helper">Показаны кабинеты выбранного владельца.</span>
+              ) : null}
             </div>
           )}
 
           <div className="dashboard-filters__group dashboard-filters__group--mode">
-            <span className="field__label">Cabinet filter</span>
-            <div className="dashboard-filter-mode" role="group" aria-label="Cabinet filter mode">
+            <span className="field__label">Фильтр кабинетов</span>
+            <div className="dashboard-filter-mode" role="group" aria-label="Фильтр кабинетов">
               <button
                 className={`dashboard-filter-mode__button${cabinetMode === "include" ? " dashboard-filter-mode__button--active" : ""}`}
                 type="button"
                 onClick={() => setCabinetMode("include")}
               >
-                Include selected
+                Включить выбранные
               </button>
               <button
                 className={`dashboard-filter-mode__button${cabinetMode === "exclude" ? " dashboard-filter-mode__button--active" : ""}`}
                 type="button"
                 onClick={() => setCabinetMode("exclude")}
               >
-                Exclude selected
+                Исключить выбранные
               </button>
             </div>
           </div>
 
           <div className="dashboard-filters__group dashboard-filters__group--cabinets">
-            <span className="field__label">Cabinet filter</span>
+            <span className="field__label">Фильтр кабинетов</span>
             <details className="dashboard-cabinet-select">
               <summary className="dashboard-cabinet-select__summary">{selectedLabel}</summary>
               <div className="dashboard-cabinet-select__panel">
                 <input
-                  aria-label="Search cabinets"
+                  aria-label="Поиск кабинетов"
                   className="auth-input auth-input--compact"
                   onChange={(event) => setCabinetSearch(event.currentTarget.value)}
-                  placeholder="Search cabinets"
+                  placeholder="Поиск кабинетов"
                   type="search"
                   value={cabinetSearch}
                 />
 
                 {cabinetsForOwner.length === 0 ? (
-                  <p className="dashboard-filter-empty">No active cabinets for this owner.</p>
+                  <p className="dashboard-filter-empty">Нет активных кабинетов у этого владельца.</p>
                 ) : filteredCabinets.length === 0 ? (
-                  <p className="dashboard-filter-empty">No cabinets match the search.</p>
+                  <p className="dashboard-filter-empty">Кабинеты не найдены.</p>
                 ) : (
                   <div className="dashboard-cabinet-select__list">
                     {filteredCabinets.map((account) => (
@@ -307,7 +309,7 @@ export function DashboardFilters({
                     onClick={() => setSelectedCabinetIds([])}
                     type="button"
                   >
-                    Clear
+                    Очистить
                   </button>
                 </div>
               </div>
@@ -319,7 +321,7 @@ export function DashboardFilters({
               &nbsp;
             </label>
             <button className="button button--primary button--compact" type="submit">
-              РџСЂРёРјРµРЅРёС‚СЊ
+              Применить
             </button>
           </div>
         </div>

@@ -56,7 +56,6 @@ function formatDateLabel(d: Date): string {
 }
 
 export default async function DashboardPage({ searchParams }: DashboardPageProps) {
-  // ── Resolve date range (default: last 7 days including today) ──────────────
   const today = new Date();
   today.setUTCHours(0, 0, 0, 0);
   const defaultFrom = new Date(today);
@@ -68,7 +67,6 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
   const cabinetIds = parseCabinetIdsParam(searchParams?.cabinetIds, searchParams?.cabinetId);
   const ownerId = searchParams?.ownerId ?? "";
 
-  // ── Load filter options ────────────────────────────────────────────────────
   const [adAccounts, snapshot] = await Promise.all([
     listAdAccounts(),
     getCampaignHierarchySnapshot({
@@ -89,8 +87,6 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
     ),
   ].sort((left, right) => left.localeCompare(right));
 
-  // ── Load dashboard data ────────────────────────────────────────────────────
-  // ── Aggregate summary metrics from totals (not averages) ──────────────────
   const totalSpend = snapshot.campaigns.reduce((s, c) => s + c.spend, 0);
   const totalResults = snapshot.campaigns.reduce((s, c) => s + c.results, 0);
   const totalImpressions = snapshot.campaigns.reduce((s, c) => s + c.impressions, 0);
@@ -100,7 +96,6 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
   const totalCpm = totalImpressions > 0 ? (totalSpend / totalImpressions) * 1000 : null;
   const campaignCount = snapshot.campaigns.length;
 
-  // ── Date range label ───────────────────────────────────────────────────────
   const fromLabel = formatDateLabel(fromDate);
   const toLabel = formatDateLabel(toDate);
   const dateRangeLabel =
