@@ -1,8 +1,6 @@
 import { ImportLevel, ImportRunStatus, Prisma } from "@prisma/client";
 import { db } from "@/server/db/client";
 
-// ── Filter type ───────────────────────────────────────────────────────────────
-
 export type DashboardFilters = {
   from?: Date;
   to?: Date;
@@ -10,66 +8,55 @@ export type DashboardFilters = {
   ownerId?: string;
 };
 
-// ── Public row types ──────────────────────────────────────────────────────────
+type BudgetValue = number | "mixed" | null;
 
-export type HierarchyAdRow = {
-  adId: string | null;
-  adName: string;
+type HierarchyMetricFields = {
   delivery: string | null;
   spend: number;
   results: number;
+  costPerResult: number | null;
   cpa: number | null;
+  cpm: number | null;
+  reach: number;
+  impressions: number;
+  clicksAll: number;
+  clicks: number;
+  cpcAll: number | null;
+  cpc: number | null;
+  ctrAll: number | null;
+  ctr: number | null;
+  frequency: number | null;
+  linkClicks: number;
+  linkCtr: number | null;
+  linkCpc: number | null;
+  outboundClicks: number;
   outboundCtr: number | null;
+  costPerOutboundClick: number | null;
+  landingPageViews: number;
+  costPerLandingPageView: number | null;
   cplpv: number | null;
   lpv: number | null;
-  impressions: number;
-  clicks: number;
-  ctr: number | null;
-  cpm: number | null;
-  cpc: number | null;
+  budget: BudgetValue;
   intervalSpend: number;
   intervalResults: number;
 };
 
-export type HierarchyAdSetRow = {
+export type HierarchyAdRow = HierarchyMetricFields & {
+  adId: string | null;
+  adName: string;
+};
+
+export type HierarchyAdSetRow = HierarchyMetricFields & {
   adSetId: string | null;
   adSetName: string;
   campaignId: string | null;
-  delivery: string | null;
-  spend: number;
-  results: number;
-  cpa: number | null;
-  outboundCtr: number | null;
-  cplpv: number | null;
-  lpv: number | null;
-  impressions: number;
-  clicks: number;
-  ctr: number | null;
-  cpm: number | null;
-  cpc: number | null;
-  intervalSpend: number;
-  intervalResults: number;
   ads: HierarchyAdRow[];
 };
 
-export type HierarchyCampaignRow = {
+export type HierarchyCampaignRow = HierarchyMetricFields & {
   campaignId: string | null;
   campaignName: string;
   approachName: string | null;
-  delivery: string | null;
-  spend: number;
-  results: number;
-  cpa: number | null;
-  outboundCtr: number | null;
-  cplpv: number | null;
-  lpv: number | null;
-  impressions: number;
-  clicks: number;
-  ctr: number | null;
-  cpm: number | null;
-  cpc: number | null;
-  intervalSpend: number;
-  intervalResults: number;
   adSets: HierarchyAdSetRow[];
 };
 
@@ -79,7 +66,19 @@ export type CampaignHierarchySnapshot = {
   campaigns: HierarchyCampaignRow[];
 };
 
-// ── Internal aggregate record ─────────────────────────────────────────────────
+type ExtractedAdditionalMetrics = {
+  delivery: string | null;
+  campaignDelivery: string | null;
+  adSetDelivery: string | null;
+  adDelivery: string | null;
+  reach: number | null;
+  clicksAll: number | null;
+  linkClicks: number | null;
+  outboundClicks: number | null;
+  landingPageViews: number | null;
+  frequency: number | null;
+  budget: number | null;
+};
 
 type EntityRecord = {
   entityKey: string;
@@ -93,31 +92,50 @@ type EntityRecord = {
   approachName: string | null;
   totalSpend: number;
   totalResults: number;
+  totalReach: number;
   totalImpressions: number;
-  totalClicks: number;
-  dailySpend: number;
-  dailyResults: number;
-  normalizedPayload: unknown;
+  totalClicksAll: number;
+  totalLinkClicks: number;
+  totalOutboundClicks: number;
+  totalLandingPageViews: number;
+  intervalSpend: number;
+  intervalResults: number;
+  deliveryValues: Set<string>;
+  budgetValues: Set<number>;
+  latestFrequency: number | null;
 };
 
-// ── Helpers ───────────────────────────────────────────────────────────────────
-
-function toNum(v: unknown): number {
-  if (v == null) return 0;
-  const n =
-    typeof v === "object" && v !== null && "toNumber" in v
-      ? (v as { toNumber(): number }).toNumber()
-      : Number(v);
-  return Number.isFinite(n) ? n : 0;
+function toNum(value: unknown): number {
+  if (value == null) return 0;
+  const numericValue =
+    typeof value === "object" && value !== null && "toNumber" in value
+      ? (value as { toNumber(): number }).toNumber()
+      : Number(value);
+  return Number.isFinite(numericValue) ? numericValue : 0;
 }
 
-function toNumOrNull(v: unknown): number | null {
-  if (v == null) return null;
-  const n =
-    typeof v === "object" && v !== null && "toNumber" in v
-      ? (v as { toNumber(): number }).toNumber()
-      : Number(v);
-  return Number.isFinite(n) ? n : null;
+function toNumOrNull(value: unknown): number | null {
+  if (value == null) return null;
+  const numericValue =
+    typeof value === "object" && value !== null && "toNumber" in value
+      ? (value as { toNumber(): number }).toNumber()
+      : Number(value);
+  return Number.isFinite(numericValue) ? numericValue : null;
+}
+
+function readRecord(value: unknown): Record<string, unknown> | null {
+  return value && typeof value === "object" && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : null;
+}
+
+function safeDivide(numerator: number, denominator: number): number | null {
+  if (!Number.isFinite(numerator) || !Number.isFinite(denominator) || denominator <= 0) {
+    return null;
+  }
+
+  const value = numerator / denominator;
+  return Number.isFinite(value) ? value : null;
 }
 
 function buildEntityKey(
@@ -134,142 +152,191 @@ function buildEntityKey(
     : `${importLevel}|${campaignName ?? ""}|${adsetName ?? ""}|${adName ?? ""}`;
 }
 
-function extractAdditionalMetrics(payload: unknown): {
-  outboundCtr: number | null;
-  cplpv: number | null;
-  delivery: string | null;
-} {
-  const p = payload as Record<string, unknown> | null;
-  const additional = p?.additionalMetrics as Record<string, unknown> | null;
+function extractAdditionalMetrics(payload: unknown): ExtractedAdditionalMetrics {
+  const p = readRecord(payload);
+  const additional = readRecord(p?.additionalMetrics);
+
   return {
-    outboundCtr: toNumOrNull(additional?.outboundCtr),
-    cplpv: toNumOrNull(additional?.cplpv),
-    delivery: typeof additional?.delivery === "string" ? additional.delivery : null
+    delivery: typeof additional?.delivery === "string" ? additional.delivery : null,
+    campaignDelivery: typeof additional?.campaignDelivery === "string" ? additional.campaignDelivery : null,
+    adSetDelivery: typeof additional?.adSetDelivery === "string" ? additional.adSetDelivery : null,
+    adDelivery: typeof additional?.adDelivery === "string" ? additional.adDelivery : null,
+    reach: toNumOrNull(additional?.reach),
+    clicksAll: toNumOrNull(additional?.clicksAll),
+    linkClicks: toNumOrNull(additional?.linkClicks),
+    outboundClicks: toNumOrNull(additional?.outboundClicks),
+    landingPageViews: toNumOrNull(additional?.landingPageViews),
+    frequency: toNumOrNull(additional?.frequency),
+    budget: toNumOrNull(additional?.budget),
   };
 }
 
-// ── Row builders ──────────────────────────────────────────────────────────────
+function deliveryForLevel(importLevel: ImportLevel, metrics: ExtractedAdditionalMetrics): string | null {
+  if (importLevel === ImportLevel.CAMPAIGN) return metrics.campaignDelivery ?? metrics.delivery;
+  if (importLevel === ImportLevel.AD_SET) return metrics.adSetDelivery ?? metrics.delivery;
+  return metrics.adDelivery ?? metrics.delivery;
+}
+
+function addContextValue(values: Set<string>, value: string | null) {
+  const normalized = value?.trim();
+  if (normalized) values.add(normalized);
+}
+
+function addBudgetValue(values: Set<number>, value: number | null) {
+  if (value !== null && Number.isFinite(value)) values.add(value);
+}
+
+function resolveTextContext(values: Iterable<string>): string | null {
+  const unique = [...new Set([...values].filter(Boolean))];
+  if (unique.length === 0) return null;
+  return unique.length === 1 ? unique[0] : "mixed";
+}
+
+function resolveBudgetContext(values: Iterable<number>): BudgetValue {
+  const unique = [...new Set([...values].filter(Number.isFinite))];
+  if (unique.length === 0) return null;
+  return unique.length === 1 ? unique[0] : "mixed";
+}
+
+function buildMetricFields(input: {
+  spend: number;
+  results: number;
+  reach: number;
+  impressions: number;
+  clicksAll: number;
+  linkClicks: number;
+  outboundClicks: number;
+  landingPageViews: number;
+  delivery: string | null;
+  budget: BudgetValue;
+  intervalSpend: number;
+  intervalResults: number;
+  fallbackFrequency?: number | null;
+}): HierarchyMetricFields {
+  const costPerResult = safeDivide(input.spend, input.results);
+  const cpmBase = safeDivide(input.spend, input.impressions);
+  const cpm = cpmBase === null ? null : cpmBase * 1000;
+  const cpcAll = safeDivide(input.spend, input.clicksAll);
+  const ctrAllBase = safeDivide(input.clicksAll, input.impressions);
+  const ctrAll = ctrAllBase === null ? null : ctrAllBase * 100;
+  const linkCpc = safeDivide(input.spend, input.linkClicks);
+  const linkCtrBase = safeDivide(input.linkClicks, input.impressions);
+  const linkCtr = linkCtrBase === null ? null : linkCtrBase * 100;
+  const costPerOutboundClick = safeDivide(input.spend, input.outboundClicks);
+  const outboundCtrBase = safeDivide(input.outboundClicks, input.impressions);
+  const outboundCtr = outboundCtrBase === null ? null : outboundCtrBase * 100;
+  const costPerLandingPageView = safeDivide(input.spend, input.landingPageViews);
+  const frequencyFromTotals = safeDivide(input.impressions, input.reach);
+  const frequency = frequencyFromTotals ?? input.fallbackFrequency ?? null;
+
+  return {
+    delivery: input.delivery,
+    spend: input.spend,
+    results: input.results,
+    costPerResult,
+    cpa: costPerResult,
+    cpm,
+    reach: input.reach,
+    impressions: input.impressions,
+    clicksAll: input.clicksAll,
+    clicks: input.clicksAll,
+    cpcAll,
+    cpc: cpcAll,
+    ctrAll,
+    ctr: linkCtr,
+    frequency,
+    linkClicks: input.linkClicks,
+    linkCtr,
+    linkCpc,
+    outboundClicks: input.outboundClicks,
+    outboundCtr,
+    costPerOutboundClick,
+    landingPageViews: input.landingPageViews,
+    costPerLandingPageView,
+    cplpv: costPerLandingPageView,
+    lpv: input.landingPageViews || null,
+    budget: input.budget,
+    intervalSpend: input.intervalSpend,
+    intervalResults: input.intervalResults,
+  };
+}
+
+function buildMetricFieldsFromEntity(entity: EntityRecord): HierarchyMetricFields {
+  return buildMetricFields({
+    spend: entity.totalSpend,
+    results: entity.totalResults,
+    reach: entity.totalReach,
+    impressions: entity.totalImpressions,
+    clicksAll: entity.totalClicksAll,
+    linkClicks: entity.totalLinkClicks,
+    outboundClicks: entity.totalOutboundClicks,
+    landingPageViews: entity.totalLandingPageViews,
+    delivery: resolveTextContext(entity.deliveryValues),
+    budget: resolveBudgetContext(entity.budgetValues),
+    intervalSpend: entity.intervalSpend,
+    intervalResults: entity.intervalResults,
+    fallbackFrequency: entity.latestFrequency,
+  });
+}
 
 function buildAdRow(entity: EntityRecord): HierarchyAdRow {
-  const { outboundCtr, cplpv, delivery } = extractAdditionalMetrics(entity.normalizedPayload);
-  const payload = entity.normalizedPayload as Record<string, unknown> | null;
-  const source = payload?.source as Record<string, unknown> | null;
-  const ctx = source?.sourceContext as Record<string, unknown> | null;
-  const adDelivery = typeof ctx?.adDelivery === "string" ? ctx.adDelivery : delivery;
-
-  const spend = entity.totalSpend;
-  const results = entity.totalResults;
-  const impressions = entity.totalImpressions;
-  const clicks = entity.totalClicks;
-
   return {
     adId: entity.adId,
     adName: entity.adName ?? "",
-    delivery: adDelivery,
-    spend,
-    results,
-    cpa: results > 0 ? spend / results : null,
-    outboundCtr,
-    cplpv,
-    lpv: cplpv && cplpv > 0 ? Math.round(spend / cplpv) : null,
-    impressions,
-    clicks,
-    ctr: impressions > 0 ? (clicks / impressions) * 100 : null,
-    cpm: impressions > 0 ? (spend / impressions) * 1000 : null,
-    cpc: clicks > 0 ? spend / clicks : null,
-    intervalSpend: entity.dailySpend,
-    intervalResults: entity.dailyResults
+    ...buildMetricFieldsFromEntity(entity),
   };
 }
 
 function buildAdSetRow(entity: EntityRecord, ads: HierarchyAdRow[]): HierarchyAdSetRow {
-  const { outboundCtr, cplpv, delivery } = extractAdditionalMetrics(entity.normalizedPayload);
-
-  const spend = entity.totalSpend;
-  const results = entity.totalResults;
-  const impressions = entity.totalImpressions;
-  const clicks = entity.totalClicks;
-
   return {
     adSetId: entity.adSetId,
     adSetName: entity.adsetName ?? "",
     campaignId: entity.campaignId,
-    delivery,
-    spend,
-    results,
-    cpa: results > 0 ? spend / results : null,
-    outboundCtr,
-    cplpv,
-    lpv: cplpv && cplpv > 0 ? Math.round(spend / cplpv) : null,
-    impressions,
-    clicks,
-    ctr: impressions > 0 ? (clicks / impressions) * 100 : null,
-    cpm: impressions > 0 ? (spend / impressions) * 1000 : null,
-    cpc: clicks > 0 ? spend / clicks : null,
-    intervalSpend: entity.dailySpend,
-    intervalResults: entity.dailyResults,
-    ads
+    ...buildMetricFieldsFromEntity(entity),
+    ads,
   };
 }
 
 function buildCampaignRow(entity: EntityRecord, adSets: HierarchyAdSetRow[]): HierarchyCampaignRow {
-  const { outboundCtr, cplpv, delivery } = extractAdditionalMetrics(entity.normalizedPayload);
-
-  const spend = entity.totalSpend;
-  const results = entity.totalResults;
-  const impressions = entity.totalImpressions;
-  const clicks = entity.totalClicks;
-
   return {
     campaignId: entity.campaignId,
     campaignName: entity.campaignName ?? "",
     approachName: entity.approachName,
-    delivery,
-    spend,
-    results,
-    cpa: results > 0 ? spend / results : null,
-    outboundCtr,
-    cplpv,
-    lpv: cplpv && cplpv > 0 ? Math.round(spend / cplpv) : null,
-    impressions,
-    clicks,
-    ctr: impressions > 0 ? (clicks / impressions) * 100 : null,
-    cpm: impressions > 0 ? (spend / impressions) * 1000 : null,
-    cpc: clicks > 0 ? spend / clicks : null,
-    intervalSpend: entity.dailySpend,
-    intervalResults: entity.dailyResults,
-    adSets
+    ...buildMetricFieldsFromEntity(entity),
+    adSets,
   };
 }
 
+function aggregateBudgetFromRows(rows: { budget: BudgetValue }[]): BudgetValue {
+  const budgets = rows.map((row) => row.budget);
+  if (budgets.some((budget) => budget === "mixed")) return "mixed";
+  return resolveBudgetContext(budgets.filter((budget): budget is number => typeof budget === "number"));
+}
+
 function aggregateIntoAdSet(adSetName: string, campaignId: string | null, ads: HierarchyAdRow[]): HierarchyAdSetRow {
-  const spend = ads.reduce((s, r) => s + r.spend, 0);
-  const results = ads.reduce((s, r) => s + r.results, 0);
-  const impressions = ads.reduce((s, r) => s + r.impressions, 0);
-  const clicks = ads.reduce((s, r) => s + r.clicks, 0);
-  const lpv = ads.reduce((s, r) => s + (r.lpv ?? 0), 0);
-  const intervalSpend = ads.reduce((s, r) => s + r.intervalSpend, 0);
-  const intervalResults = ads.reduce((s, r) => s + r.intervalResults, 0);
+  const reach = ads.reduce((sum, row) => sum + row.reach, 0);
+  const impressions = ads.reduce((sum, row) => sum + row.impressions, 0);
 
   return {
     adSetId: null,
     adSetName,
     campaignId,
-    delivery: null,
-    spend,
-    results,
-    cpa: results > 0 ? spend / results : null,
-    outboundCtr: null,
-    cplpv: null,
-    lpv: lpv || null,
-    impressions,
-    clicks,
-    ctr: impressions > 0 ? (clicks / impressions) * 100 : null,
-    cpm: impressions > 0 ? (spend / impressions) * 1000 : null,
-    cpc: clicks > 0 ? spend / clicks : null,
-    intervalSpend,
-    intervalResults,
-    ads
+    ...buildMetricFields({
+      spend: ads.reduce((sum, row) => sum + row.spend, 0),
+      results: ads.reduce((sum, row) => sum + row.results, 0),
+      reach,
+      impressions,
+      clicksAll: ads.reduce((sum, row) => sum + row.clicksAll, 0),
+      linkClicks: ads.reduce((sum, row) => sum + row.linkClicks, 0),
+      outboundClicks: ads.reduce((sum, row) => sum + row.outboundClicks, 0),
+      landingPageViews: ads.reduce((sum, row) => sum + row.landingPageViews, 0),
+      delivery: resolveTextContext(ads.map((row) => row.delivery).filter((value): value is string => Boolean(value))),
+      budget: aggregateBudgetFromRows(ads),
+      intervalSpend: ads.reduce((sum, row) => sum + row.intervalSpend, 0),
+      intervalResults: ads.reduce((sum, row) => sum + row.intervalResults, 0),
+      fallbackFrequency: null,
+    }),
+    ads,
   };
 }
 
@@ -278,37 +345,31 @@ function aggregateIntoCampaign(
   approachName: string | null,
   adSets: HierarchyAdSetRow[]
 ): HierarchyCampaignRow {
-  const spend = adSets.reduce((s, r) => s + r.spend, 0);
-  const results = adSets.reduce((s, r) => s + r.results, 0);
-  const impressions = adSets.reduce((s, r) => s + r.impressions, 0);
-  const clicks = adSets.reduce((s, r) => s + r.clicks, 0);
-  const lpv = adSets.reduce((s, r) => s + (r.lpv ?? 0), 0);
-  const intervalSpend = adSets.reduce((s, r) => s + r.intervalSpend, 0);
-  const intervalResults = adSets.reduce((s, r) => s + r.intervalResults, 0);
+  const reach = adSets.reduce((sum, row) => sum + row.reach, 0);
+  const impressions = adSets.reduce((sum, row) => sum + row.impressions, 0);
 
   return {
     campaignId: null,
     campaignName,
     approachName,
-    delivery: null,
-    spend,
-    results,
-    cpa: results > 0 ? spend / results : null,
-    outboundCtr: null,
-    cplpv: null,
-    lpv: lpv || null,
-    impressions,
-    clicks,
-    ctr: impressions > 0 ? (clicks / impressions) * 100 : null,
-    cpm: impressions > 0 ? (spend / impressions) * 1000 : null,
-    cpc: clicks > 0 ? spend / clicks : null,
-    intervalSpend,
-    intervalResults,
-    adSets
+    ...buildMetricFields({
+      spend: adSets.reduce((sum, row) => sum + row.spend, 0),
+      results: adSets.reduce((sum, row) => sum + row.results, 0),
+      reach,
+      impressions,
+      clicksAll: adSets.reduce((sum, row) => sum + row.clicksAll, 0),
+      linkClicks: adSets.reduce((sum, row) => sum + row.linkClicks, 0),
+      outboundClicks: adSets.reduce((sum, row) => sum + row.outboundClicks, 0),
+      landingPageViews: adSets.reduce((sum, row) => sum + row.landingPageViews, 0),
+      delivery: resolveTextContext(adSets.map((row) => row.delivery).filter((value): value is string => Boolean(value))),
+      budget: aggregateBudgetFromRows(adSets),
+      intervalSpend: adSets.reduce((sum, row) => sum + row.intervalSpend, 0),
+      intervalResults: adSets.reduce((sum, row) => sum + row.intervalResults, 0),
+      fallbackFrequency: null,
+    }),
+    adSets,
   };
 }
-
-// ── Main snapshot function ────────────────────────────────────────────────────
 
 export async function getCampaignHierarchySnapshot(
   filters: DashboardFilters = {}
@@ -351,6 +412,8 @@ export async function getCampaignHierarchySnapshot(
       results: true,
       impressions: true,
       clicks: true,
+      intervalSpend: true,
+      intervalResults: true,
       normalizedPayload: true,
     },
     orderBy: { reportDate: "asc" },
@@ -360,7 +423,6 @@ export async function getCampaignHierarchySnapshot(
     return { importRunId: null, reportDate: null, campaigns: [] };
   }
 
-  // Aggregate rows per entity — sum raw metrics, take latest payload for additional metrics
   const entityMap = new Map<string, EntityRecord>();
   let latestReportDate: Date | null = null;
 
@@ -374,11 +436,15 @@ export async function getCampaignHierarchySnapshot(
       row.adsetName,
       row.adName
     );
-
+    const additionalMetrics = extractAdditionalMetrics(row.normalizedPayload);
     const rowSpend = toNum(row.spend);
     const rowResults = row.results ?? 0;
     const rowImpressions = row.impressions ?? 0;
-    const rowClicks = row.clicks ?? 0;
+    const rowClicksAll = row.clicks ?? Math.round(additionalMetrics.clicksAll ?? 0);
+    const rowReach = Math.round(additionalMetrics.reach ?? 0);
+    const rowLinkClicks = Math.round(additionalMetrics.linkClicks ?? 0);
+    const rowOutboundClicks = Math.round(additionalMetrics.outboundClicks ?? 0);
+    const rowLandingPageViews = Math.round(additionalMetrics.landingPageViews ?? 0);
 
     if (row.reportDate && (!latestReportDate || row.reportDate > latestReportDate)) {
       latestReportDate = row.reportDate;
@@ -386,6 +452,11 @@ export async function getCampaignHierarchySnapshot(
 
     const existing = entityMap.get(key);
     if (!existing) {
+      const deliveryValues = new Set<string>();
+      const budgetValues = new Set<number>();
+      addContextValue(deliveryValues, deliveryForLevel(row.importLevel, additionalMetrics));
+      addBudgetValue(budgetValues, additionalMetrics.budget);
+
       entityMap.set(key, {
         entityKey: key,
         importLevel: row.importLevel,
@@ -398,29 +469,40 @@ export async function getCampaignHierarchySnapshot(
         approachName: row.approachName,
         totalSpend: rowSpend,
         totalResults: rowResults,
+        totalReach: rowReach,
         totalImpressions: rowImpressions,
-        totalClicks: rowClicks,
-        dailySpend: 0,
-        dailyResults: 0,
-        normalizedPayload: row.normalizedPayload,
+        totalClicksAll: rowClicksAll,
+        totalLinkClicks: rowLinkClicks,
+        totalOutboundClicks: rowOutboundClicks,
+        totalLandingPageViews: rowLandingPageViews,
+        intervalSpend: toNum(row.intervalSpend),
+        intervalResults: row.intervalResults ?? 0,
+        deliveryValues,
+        budgetValues,
+        latestFrequency: additionalMetrics.frequency,
       });
     } else {
       existing.totalSpend += rowSpend;
       existing.totalResults += rowResults;
+      existing.totalReach += rowReach;
       existing.totalImpressions += rowImpressions;
-      existing.totalClicks += rowClicks;
-      // Latest row wins for payload (outboundCtr, cplpv, delivery from most recent day)
-      existing.normalizedPayload = row.normalizedPayload;
+      existing.totalClicksAll += rowClicksAll;
+      existing.totalLinkClicks += rowLinkClicks;
+      existing.totalOutboundClicks += rowOutboundClicks;
+      existing.totalLandingPageViews += rowLandingPageViews;
+      existing.intervalSpend += toNum(row.intervalSpend);
+      existing.intervalResults += row.intervalResults ?? 0;
+      addContextValue(existing.deliveryValues, deliveryForLevel(row.importLevel, additionalMetrics));
+      addBudgetValue(existing.budgetValues, additionalMetrics.budget);
+      existing.latestFrequency = additionalMetrics.frequency ?? existing.latestFrequency;
     }
   }
 
   const entityRecords = [...entityMap.values()];
+  const campaignEntities = entityRecords.filter((row) => row.importLevel === ImportLevel.CAMPAIGN);
+  const adSetEntities = entityRecords.filter((row) => row.importLevel === ImportLevel.AD_SET);
+  const adEntities = entityRecords.filter((row) => row.importLevel === ImportLevel.AD);
 
-  const campaignEntities = entityRecords.filter((r) => r.importLevel === ImportLevel.CAMPAIGN);
-  const adSetEntities = entityRecords.filter((r) => r.importLevel === ImportLevel.AD_SET);
-  const adEntities = entityRecords.filter((r) => r.importLevel === ImportLevel.AD);
-
-  // Group ads by adSetId / adSetName
   const adsByAdSetId = new Map<string, HierarchyAdRow[]>();
   const adsByAdSetName = new Map<string, HierarchyAdRow[]>();
 
@@ -438,7 +520,6 @@ export async function getCampaignHierarchySnapshot(
     }
   }
 
-  // Build adSet rows, group by campaignId / campaignName
   const adSetsByCampaignId = new Map<string, HierarchyAdSetRow[]>();
   const adSetsByCampaignName = new Map<string, HierarchyAdSetRow[]>();
 
@@ -453,16 +534,15 @@ export async function getCampaignHierarchySnapshot(
         list.push(row);
         adSetsByCampaignId.set(adSet.campaignId, list);
       } else {
-        const cn = adSet.campaignName ?? "";
-        const list = adSetsByCampaignName.get(cn) ?? [];
+        const campaignName = adSet.campaignName ?? "";
+        const list = adSetsByCampaignName.get(campaignName) ?? [];
         list.push(row);
-        adSetsByCampaignName.set(cn, list);
+        adSetsByCampaignName.set(campaignName, list);
       }
     }
   } else {
-    // No adSet-level data: synthesize from ad rows
     for (const [adSetId, ads] of adsByAdSetId) {
-      const firstAd = adEntities.find((r) => r.adSetId === adSetId);
+      const firstAd = adEntities.find((row) => row.adSetId === adSetId);
       const row = aggregateIntoAdSet(firstAd?.adsetName ?? adSetId, firstAd?.campaignId ?? null, ads);
 
       const campaignId = firstAd?.campaignId;
@@ -471,19 +551,20 @@ export async function getCampaignHierarchySnapshot(
         list.push(row);
         adSetsByCampaignId.set(campaignId, list);
       } else {
-        const cn = firstAd?.campaignName ?? "";
-        const list = adSetsByCampaignName.get(cn) ?? [];
+        const campaignName = firstAd?.campaignName ?? "";
+        const list = adSetsByCampaignName.get(campaignName) ?? [];
         list.push(row);
-        adSetsByCampaignName.set(cn, list);
+        adSetsByCampaignName.set(campaignName, list);
       }
     }
-    for (const [name, ads] of adsByAdSetName) {
-      const firstAd = adEntities.find((r) => (r.adsetName ?? "") === name);
-      const row = aggregateIntoAdSet(name, firstAd?.campaignId ?? null, ads);
-      const cn = firstAd?.campaignName ?? "";
-      const list = adSetsByCampaignName.get(cn) ?? [];
+
+    for (const [adSetName, ads] of adsByAdSetName) {
+      const firstAd = adEntities.find((row) => (row.adsetName ?? "") === adSetName);
+      const row = aggregateIntoAdSet(adSetName, firstAd?.campaignId ?? null, ads);
+      const campaignName = firstAd?.campaignName ?? "";
+      const list = adSetsByCampaignName.get(campaignName) ?? [];
       list.push(row);
-      adSetsByCampaignName.set(cn, list);
+      adSetsByCampaignName.set(campaignName, list);
     }
   }
 
@@ -500,8 +581,8 @@ export async function getCampaignHierarchySnapshot(
   } else {
     for (const [campaignId, adSets] of adSetsByCampaignId) {
       const firstAdSet =
-        adSetEntities.find((r) => r.campaignId === campaignId) ??
-        adEntities.find((r) => r.campaignId === campaignId);
+        adSetEntities.find((row) => row.campaignId === campaignId) ??
+        adEntities.find((row) => row.campaignId === campaignId);
       campaigns.push(
         aggregateIntoCampaign(
           firstAdSet?.campaignName ?? campaignId,
@@ -510,13 +591,14 @@ export async function getCampaignHierarchySnapshot(
         )
       );
     }
+
     for (const [campaignName, adSets] of adSetsByCampaignName) {
-      const firstAdSet = adEntities.find((r) => (r.campaignName ?? "") === campaignName);
+      const firstAdSet = adEntities.find((row) => (row.campaignName ?? "") === campaignName);
       campaigns.push(aggregateIntoCampaign(campaignName, firstAdSet?.approachName ?? null, adSets));
     }
   }
 
-  campaigns.sort((a, b) => b.spend - a.spend);
+  campaigns.sort((left, right) => right.spend - left.spend);
 
   return {
     importRunId: null,
