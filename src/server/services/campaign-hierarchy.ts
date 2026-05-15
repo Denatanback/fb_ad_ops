@@ -6,6 +6,8 @@ export type DashboardFilters = {
   to?: Date;
   adAccountId?: string;
   ownerId?: string;
+  cabinetIds?: string[];
+  cabinetMode?: "include" | "exclude";
 };
 
 type BudgetValue = number | "mixed" | null;
@@ -374,17 +376,51 @@ function aggregateIntoCampaign(
 export async function getCampaignHierarchySnapshot(
   filters: DashboardFilters = {}
 ): Promise<CampaignHierarchySnapshot> {
-  const { from, to, adAccountId, ownerId } = filters;
+  const { from, to, ownerId } = filters;
+  const cabinetMode = filters.cabinetMode === "exclude" ? "exclude" : "include";
+  const requestedCabinetIds = [
+    ...(filters.cabinetIds ?? []),
+    ...(filters.adAccountId ? [filters.adAccountId] : []),
+  ]
+    .map((id) => id.trim())
+    .filter(Boolean);
+
+  const needsCabinetScope = Boolean(ownerId || requestedCabinetIds.length);
+  let scopedCabinetIds: string[] | null = null;
+
+  if (needsCabinetScope) {
+    const activeCabinets = await db.adAccount.findMany({
+      where: {
+        isActive: true,
+        ...(ownerId ? { ownerId } : {}),
+      },
+      select: { id: true },
+    });
+    const baseAllowedIds = activeCabinets.map((cabinet) => cabinet.id);
+    const baseAllowedSet = new Set(baseAllowedIds);
+    const selectedIds = [...new Set(requestedCabinetIds)].filter((id) => baseAllowedSet.has(id));
+
+    if (selectedIds.length && cabinetMode === "include") {
+      scopedCabinetIds = baseAllowedIds.filter((id) => selectedIds.includes(id));
+    } else if (selectedIds.length && cabinetMode === "exclude") {
+      const excluded = new Set(selectedIds);
+      scopedCabinetIds = baseAllowedIds.filter((id) => !excluded.has(id));
+    } else if (ownerId) {
+      scopedCabinetIds = baseAllowedIds;
+    } else {
+      scopedCabinetIds = null;
+    }
+  }
 
   const importRunFilter: Prisma.ImportRunWhereInput = {
     isActive: true,
     processingStatus: ImportRunStatus.COMPLETED,
-    ...(adAccountId ? { adAccountId } : {}),
-    ...(ownerId ? { adAccount: { ownerId } } : {}),
+    ...(scopedCabinetIds ? { adAccountId: { in: scopedCabinetIds } } : {}),
   };
 
   const where: Prisma.ImportNormalizedRowWhereInput = {
     isActive: true,
+    ...(scopedCabinetIds ? { adAccountId: { in: scopedCabinetIds } } : {}),
     importRun: importRunFilter,
     ...((from || to)
       ? {

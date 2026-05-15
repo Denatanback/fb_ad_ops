@@ -1,4 +1,5 @@
 import { FlashMessage } from "@/components/workspace/flash-message";
+import { PendingFormStatus, PendingSubmitButton } from "@/components/ui/pending-submit-button";
 import { PageHeader } from "@/components/workspace/page-header";
 import { SectionCard } from "@/components/workspace/section-card";
 import { SettingsSectionNav } from "@/components/workspace/settings-section-nav";
@@ -142,11 +143,14 @@ function CostRow({
           />
         </div>
         <div className="field" style={{ alignSelf: "flex-end" }}>
-          <button type="submit" className="button button--primary button--compact" style={{ marginTop: "auto" }}>
-            Сохранить
-          </button>
+          <PendingSubmitButton
+            className="button button--primary button--compact"
+            label="Сохранить"
+            pendingLabel="Saving..."
+          />
         </div>
       </div>
+      <PendingFormStatus message="Saving..." detail="Updating target cost settings." />
     </form>
   );
 }

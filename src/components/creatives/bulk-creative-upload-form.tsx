@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useFormState, useFormStatus } from "react-dom";
+import { PendingFormStatus } from "@/components/ui/pending-submit-button";
 import { bulkUploadCreativesAction, type BulkCreativeUploadState } from "@/app/(workspace)/creatives/actions";
 import { lifecycleStatusOptions } from "@/lib/creative-taxonomy";
 import { getBulkCreativeUploadAcceptValue } from "@/server/services/creative-media";
@@ -45,7 +46,8 @@ function SubmitButton({ disabled }: { disabled?: boolean }) {
 
   return (
     <button className="button button--primary" disabled={disabled || pending} type="submit">
-      {pending ? "Загружаем batch..." : "Загрузить batch"}
+      {pending ? <span aria-hidden="true" className="loading-spinner" /> : null}
+      <span>{pending ? "Uploading creatives..." : "Загрузить batch"}</span>
     </button>
   );
 }
@@ -184,6 +186,10 @@ export function BulkCreativeUploadForm({
                 Один креатив вручную
               </Link>
             </div>
+            <PendingFormStatus
+              message="Uploading creatives..."
+              detail="Uploading files to Google Drive and creating creative records. Please keep this tab open."
+            />
           </form>
 
           {state.message ? <div className={`flash-message flash-message--${state.status === "success" ? "success" : "error"}`}>{state.message}</div> : null}

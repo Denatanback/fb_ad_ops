@@ -203,6 +203,7 @@ model User {
   createdLaunchMetrics             LaunchMetrics[]           @relation("LaunchMetricsCreatedBy")
   updatedLaunchMetrics             LaunchMetrics[]           @relation("LaunchMetricsUpdatedBy")
   assignedCreativeLabelLinks       CreativeLabelAssignment[] @relation("CreativeLabelAssignmentAssignedBy")
+  createdAdAccounts                AdAccount[]               @relation("AdAccountCreatedBy")
   uploadedImportRuns               ImportRun[]               @relation("ImportRunUploadedBy")
   connectedGoogleDriveIntegrations GoogleDriveIntegration[]  @relation("GoogleDriveIntegrationConnectedBy")
   updatedGoogleDriveIntegrations   GoogleDriveIntegration[]  @relation("GoogleDriveIntegrationUpdatedBy")
@@ -920,12 +921,15 @@ model AdAccount {
   accountId  String    @unique @map("account_id")
   tag        String    @map("tag")
   ownerId    String?   @map("owner_id")
+  createdById String?  @map("created_by_id")
   isActive   Boolean   @default(true) @map("is_active")
   createdAt  DateTime  @default(now()) @map("created_at")
   updatedAt  DateTime  @updatedAt @map("updated_at")
 
   importRuns ImportRun[]
+  createdBy  User?     @relation("AdAccountCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
 
+  @@index([createdById])
   @@index([isActive])
   @@map("ad_accounts")
 }

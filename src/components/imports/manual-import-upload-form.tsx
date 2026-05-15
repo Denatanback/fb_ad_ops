@@ -1,6 +1,7 @@
 "use client";
 
 import { useFormStatus } from "react-dom";
+import { PendingFormStatus } from "@/components/ui/pending-submit-button";
 
 type AdAccountOption = {
   id: string;
@@ -94,9 +95,14 @@ function ManualImportUploadFields({ adAccounts }: { adAccounts: AdAccountOption[
 
       <div className="hero-actions">
         <button className="button button--primary" disabled={pending} type="submit">
-          {pending ? "Загружаем CSV..." : "Загрузить CSV"}
+          {pending ? <span aria-hidden="true" className="loading-spinner" /> : null}
+          <span>{pending ? "Uploading CSV..." : "Загрузить CSV"}</span>
         </button>
       </div>
+      <PendingFormStatus
+        message="Uploading CSV..."
+        detail="Uploading and processing CSV. Please keep this tab open."
+      />
     </fieldset>
   );
 }

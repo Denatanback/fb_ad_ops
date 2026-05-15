@@ -1,4 +1,5 @@
 import { FlashMessage } from "@/components/workspace/flash-message";
+import { PendingFormStatus, PendingSubmitButton } from "@/components/ui/pending-submit-button";
 import { PageHeader } from "@/components/workspace/page-header";
 import { SectionCard } from "@/components/workspace/section-card";
 import { SettingsSectionNav } from "@/components/workspace/settings-section-nav";
@@ -285,10 +286,13 @@ function RuleRow({
             autoComplete="off"
           />
         </div>
-        <button type="submit" className="button button--primary button--compact rule-row__save">
-          Сохранить
-        </button>
+        <PendingSubmitButton
+          className="button button--primary button--compact rule-row__save"
+          label="Сохранить"
+          pendingLabel="Saving..."
+        />
       </div>
+      <PendingFormStatus message="Saving..." detail="Updating analyzer rule settings." />
     </form>
   );
 }

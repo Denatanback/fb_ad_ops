@@ -4,13 +4,14 @@ import { PageHeader } from "@/components/workspace/page-header";
 import { SectionCard } from "@/components/workspace/section-card";
 import { getCampaignHierarchySnapshot } from "@/server/services/campaign-hierarchy";
 import { listAdAccounts } from "@/server/services/ad-accounts";
-import { db } from "@/server/db/client";
 
 type DashboardPageProps = {
   searchParams?: {
     from?: string;
     to?: string;
     cabinetId?: string;
+    cabinetIds?: string;
+    cabinetMode?: string;
     ownerId?: string;
   };
 };
@@ -25,6 +26,15 @@ function toEndOfDay(d: Date): Date {
   const copy = new Date(d);
   copy.setUTCHours(23, 59, 59, 999);
   return copy;
+}
+
+function parseCabinetIdsParam(param: string | undefined, legacyCabinetId?: string): string[] {
+  const ids = (param ?? legacyCabinetId ?? "")
+    .split(",")
+    .map((id) => id.trim())
+    .filter(Boolean);
+
+  return [...new Set(ids)];
 }
 
 function fmt(value: number | null | undefined, decimals = 2): string {
@@ -54,31 +64,32 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
 
   const fromDate = parseDateParam(searchParams?.from) ?? defaultFrom;
   const toDate = parseDateParam(searchParams?.to) ?? today;
-  const cabinetId = searchParams?.cabinetId ?? "";
+  const cabinetMode = searchParams?.cabinetMode === "exclude" ? "exclude" : "include";
+  const cabinetIds = parseCabinetIdsParam(searchParams?.cabinetIds, searchParams?.cabinetId);
   const ownerId = searchParams?.ownerId ?? "";
 
   // ── Load filter options ────────────────────────────────────────────────────
-  const [adAccounts, ownerRows] = await Promise.all([
+  const [adAccounts, snapshot] = await Promise.all([
     listAdAccounts(),
-    db.adAccount.findMany({
-      where: { ownerId: { not: null }, isActive: true },
-      select: { ownerId: true },
-      distinct: ["ownerId"],
-      orderBy: { ownerId: "asc" },
+    getCampaignHierarchySnapshot({
+      from: fromDate,
+      to: toEndOfDay(toDate),
+      ownerId: ownerId || undefined,
+      cabinetIds,
+      cabinetMode,
     }),
   ]);
 
-  const owners = (ownerRows as Array<{ ownerId: string | null }>).map((r) => r.ownerId as string);
   const activeAdAccounts = adAccounts.filter((a: { isActive: boolean }) => a.isActive);
+  const owners = [
+    ...new Set(
+      activeAdAccounts
+        .map((account) => account.ownerId)
+        .filter((value): value is string => Boolean(value?.trim()))
+    ),
+  ].sort((left, right) => left.localeCompare(right));
 
   // ── Load dashboard data ────────────────────────────────────────────────────
-  const snapshot = await getCampaignHierarchySnapshot({
-    from: fromDate,
-    to: toEndOfDay(toDate),
-    adAccountId: cabinetId || undefined,
-    ownerId: ownerId || undefined,
-  });
-
   // ── Aggregate summary metrics from totals (not averages) ──────────────────
   const totalSpend = snapshot.campaigns.reduce((s, c) => s + c.spend, 0);
   const totalResults = snapshot.campaigns.reduce((s, c) => s + c.results, 0);
@@ -113,7 +124,8 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
         owners={owners}
         currentFrom={fromParam}
         currentTo={toParam}
-        currentAdAccountId={cabinetId}
+        currentCabinetIds={cabinetIds}
+        currentCabinetMode={cabinetMode}
         currentOwnerId={ownerId}
       />
 

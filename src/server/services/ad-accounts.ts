@@ -45,6 +45,7 @@ export async function listAdAccounts() {
       accountId: true,
       tag: true,
       ownerId: true,
+      createdById: true,
       isActive: true,
       createdAt: true,
       updatedAt: true,
@@ -60,6 +61,7 @@ export async function findAdAccountById(id: string) {
       accountId: true,
       tag: true,
       ownerId: true,
+      createdById: true,
       isActive: true,
       createdAt: true,
       updatedAt: true,
@@ -75,6 +77,7 @@ export type CreateAdAccountInput = {
   accountId: string;
   tag: string;
   ownerId?: string | null;
+  createdById?: string | null;
 };
 
 export async function createAdAccount(input: CreateAdAccountInput) {
@@ -84,6 +87,7 @@ export async function createAdAccount(input: CreateAdAccountInput) {
       accountId: normalized,
       tag: input.tag.trim(),
       ownerId: input.ownerId?.trim() || null,
+      createdById: input.createdById ?? null,
       isActive: true,
     },
   });
@@ -109,4 +113,18 @@ export async function setAdAccountActive(id: string, isActive: boolean) {
     where: { id },
     data: { isActive },
   });
+}
+
+export type AdAccountAccessContext = {
+  userId: string;
+  role: "admin" | "member";
+};
+
+export function canManageAdAccount(
+  account: { ownerId: string | null; createdById?: string | null } | null,
+  context: AdAccountAccessContext
+) {
+  if (!account) return false;
+  if (context.role === "admin") return true;
+  return account.createdById === context.userId || account.ownerId === context.userId;
 }

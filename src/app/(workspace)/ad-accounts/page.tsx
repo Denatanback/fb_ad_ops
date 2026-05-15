@@ -14,7 +14,7 @@ import {
 import { formatDate, formatDateTime } from "@/lib/formatters";
 import { requireAuthSession } from "@/server/auth/session";
 import { getAnalyzerWorkspaceSnapshot } from "@/server/services/import-runs";
-import { listAdAccounts, findAdAccountById } from "@/server/services/ad-accounts";
+import { canManageAdAccount, listAdAccounts } from "@/server/services/ad-accounts";
 
 type AdAccountsPageProps = {
   searchParams?: {
@@ -68,11 +68,15 @@ type AdAccount = Awaited<ReturnType<typeof listAdAccounts>>[number];
 function AdAccountRow({
   account,
   isEditing,
+  canManage,
+  isAdmin,
 }: {
   account: AdAccount;
   isEditing: boolean;
+  canManage: boolean;
+  isAdmin: boolean;
 }) {
-  if (isEditing) {
+  if (isEditing && canManage) {
     return (
       <tr key={account.id} className="table-row--editing">
         <td colSpan={5}>
@@ -93,7 +97,8 @@ function AdAccountRow({
                   type="text"
                 />
               </div>
-              <div className="field">
+              {isAdmin ? (
+                <div className="field">
                 <label className="field__label" htmlFor={`owner-${account.id}`}>
                   Owner ID <span className="field__optional">(необязательно)</span>
                 </label>
@@ -105,7 +110,8 @@ function AdAccountRow({
                   placeholder="Идентификатор владельца"
                   type="text"
                 />
-              </div>
+                </div>
+              ) : null}
             </div>
             <div className="hero-actions">
               <button className="button button--primary button--compact" type="submit">
@@ -137,6 +143,7 @@ function AdAccountRow({
         </span>
       </td>
       <td className="table-actions">
+        {canManage ? (
         <div className="workspace-toolbar__group workspace-toolbar__group--links">
           <Link
             className="button button--secondary button--compact"
@@ -160,12 +167,15 @@ function AdAccountRow({
             </form>
           )}
         </div>
+        ) : (
+          <span className="table-subcopy">Only creator or admin can edit</span>
+        )}
       </td>
     </tr>
   );
 }
 
-function CreateAdAccountForm() {
+function CreateAdAccountForm({ isAdmin }: { isAdmin: boolean }) {
   return (
     <SectionCard title="Добавить аккаунт" description="Новый рекламный кабинет Facebook Ads.">
       <form action={createAdAccountAction} className="stack">
@@ -202,7 +212,8 @@ function CreateAdAccountForm() {
             />
             <p className="field__hint">Произвольная метка для быстрого распознавания.</p>
           </div>
-          <div className="field">
+          {isAdmin ? (
+            <div className="field">
             <label className="field__label" htmlFor="new-owner-id">
               Owner ID <span className="field__optional">(необязательно)</span>
             </label>
@@ -213,7 +224,8 @@ function CreateAdAccountForm() {
               placeholder="Идентификатор владельца"
               type="text"
             />
-          </div>
+            </div>
+          ) : null}
         </div>
         <div className="hero-actions">
           <button className="button button--primary" type="submit">
@@ -230,7 +242,8 @@ function CreateAdAccountForm() {
 // ---------------------------------------------------------------------------
 
 export default async function AdAccountsPage({ searchParams }: AdAccountsPageProps) {
-  await requireAuthSession();
+  const session = await requireAuthSession();
+  const isAdmin = session.user.role === "admin";
 
   const activeTab: TabId = (searchParams?.tab as TabId) ?? "cabinets";
   const editingId = searchParams?.edit ?? null;
@@ -313,6 +326,11 @@ export default async function AdAccountsPage({ searchParams }: AdAccountsPagePro
                     {adAccounts.map((account: AdAccount) => (
                       <AdAccountRow
                         account={account}
+                        canManage={canManageAdAccount(account, {
+                          userId: session.user.id,
+                          role: session.user.role,
+                        })}
+                        isAdmin={isAdmin}
                         isEditing={editingId === account.id}
                         key={account.id}
                       />
@@ -323,7 +341,7 @@ export default async function AdAccountsPage({ searchParams }: AdAccountsPagePro
             </SectionCard>
           ) : null}
 
-          <CreateAdAccountForm />
+          <CreateAdAccountForm isAdmin={isAdmin} />
         </>
       )}
 

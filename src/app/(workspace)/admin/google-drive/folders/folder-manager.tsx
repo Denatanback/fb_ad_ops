@@ -65,9 +65,20 @@ export function DriveFolderManager({ initialFolders, rootFolderId }: Props) {
             onClick={handleCreate}
             type="button"
           >
-            {isPending ? "Создание..." : "Создать папку"}
+            {isPending ? <span aria-hidden="true" className="loading-spinner" /> : null}
+            <span>{isPending ? "Creating..." : "Создать папку"}</span>
           </button>
         </div>
+
+        {isPending ? (
+          <div className="pending-status" role="status" aria-live="polite" style={{ marginTop: 10 }}>
+            <span aria-hidden="true" className="loading-spinner" />
+            <div>
+              <strong>Processing Google Drive action...</strong>
+              <span>This may take a few moments.</span>
+            </div>
+          </div>
+        ) : null}
 
         {message ? (
           <div className={`flash-message flash-message--${message.ok ? "success" : "error"}`} style={{ marginTop: 10 }}>
@@ -122,7 +133,8 @@ export function DriveFolderManager({ initialFolders, rootFolderId }: Props) {
                         style={{ backgroundColor: "var(--color-status-error, #D32F2F)", color: "white" }}
                         type="button"
                       >
-                        Удалить
+                        {isPending ? <span aria-hidden="true" className="loading-spinner" /> : null}
+                        <span>{isPending ? "Deleting..." : "Удалить"}</span>
                       </button>
                     </td>
                   </tr>

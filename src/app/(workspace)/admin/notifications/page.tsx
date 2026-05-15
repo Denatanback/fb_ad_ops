@@ -1,4 +1,5 @@
 import { FlashMessage } from "@/components/workspace/flash-message";
+import { PendingFormStatus, PendingSubmitButton } from "@/components/ui/pending-submit-button";
 import { PageHeader } from "@/components/workspace/page-header";
 import { SectionCard } from "@/components/workspace/section-card";
 import { SettingsSectionNav } from "@/components/workspace/settings-section-nav";
@@ -145,13 +146,19 @@ export default async function NotificationsAdminPage({ searchParams }: Notificat
                     <option key={v} value={v}>{v} мин</option>
                   ))}
                 </select>
-                <button className="button button--primary button--compact" type="submit">Сохранить</button>
+                <PendingSubmitButton
+                  className="button button--primary button--compact"
+                  label="Сохранить"
+                  pendingLabel="Saving..."
+                />
               </form>
 
               <form action={sendTelegramDigestsNowAction} className="tg-controls__manual">
-                <button className="button button--secondary button--compact" type="submit">
-                  Запустить cycle сейчас
-                </button>
+                <PendingSubmitButton
+                  className="button button--secondary button--compact"
+                  label="Запустить cycle сейчас"
+                  pendingLabel="Processing..."
+                />
               </form>
             </div>
 
@@ -189,8 +196,13 @@ export default async function NotificationsAdminPage({ searchParams }: Notificat
                 <span className="field__hint">Только для темы «Нужно проверить».</span>
               </div>
               <div className="compact-form__actions">
-                <button className="button button--primary button--compact" type="submit">Отправить тест</button>
+                <PendingSubmitButton
+                  className="button button--primary button--compact"
+                  label="Отправить тест"
+                  pendingLabel="Sending..."
+                />
               </div>
+              <PendingFormStatus message="Sending..." detail="Sending Telegram test notification." />
             </form>
           </SectionCard>
         </div>
@@ -225,8 +237,13 @@ export default async function NotificationsAdminPage({ searchParams }: Notificat
             ))}
           </div>
           <div className="compact-form__actions">
-            <button className="button button--primary button--compact" type="submit">Сохранить активные темы</button>
+            <PendingSubmitButton
+              className="button button--primary button--compact"
+              label="Сохранить активные темы"
+              pendingLabel="Saving..."
+            />
           </div>
+          <PendingFormStatus message="Saving..." detail="Updating active Telegram topics." />
         </form>
       </SectionCard>
 

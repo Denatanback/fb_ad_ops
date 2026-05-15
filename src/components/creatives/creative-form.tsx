@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { CreativeLabelKey } from "@prisma/client";
+import { PendingFormStatus, PendingSubmitButton } from "@/components/ui/pending-submit-button";
 import { creativeLabelOptions, lifecycleStatusOptions, type LifecycleStatusValue } from "@/lib/creative-taxonomy";
 
 type ApproachOption = {
@@ -322,13 +323,15 @@ export function CreativeForm({
             </div>
 
             <div className="hero-actions">
-              <button className="button button--primary" type="submit">
-                {submitLabel}
-              </button>
+              <PendingSubmitButton label={submitLabel} pendingLabel="Saving creative..." />
               <Link className="button button--secondary" href={cancelHref}>
                 Отмена
               </Link>
             </div>
+            <PendingFormStatus
+              message="Saving creative..."
+              detail="Uploading media when selected and saving creative details. Please keep this tab open."
+            />
           </form>
         </div>
       </article>

@@ -6,10 +6,12 @@ import { redirect } from "next/navigation";
 import { requireAuthSession } from "@/server/auth/session";
 import { acceptCsvImportUpload, DuplicateImportUploadError } from "@/server/imports/intake";
 import {
+  canManageAdAccount,
   createAdAccount,
-  updateAdAccount,
-  setAdAccountActive,
+  findAdAccountById,
   normalizeAccountId,
+  setAdAccountActive,
+  updateAdAccount,
   validateAccountId,
   validateTag,
 } from "@/server/services/ad-accounts";
@@ -32,6 +34,18 @@ function redirectToTab(tab: string, params?: Record<string, string>): never {
   if (!params) redirect(base);
   const qs = new URLSearchParams(params).toString();
   redirect(`${base}&${qs}`);
+}
+
+async function requireAdAccountManagementAccess(id: string, userId: string, role: "admin" | "member") {
+  const account = await findAdAccountById(id);
+
+  if (!canManageAdAccount(account, { userId, role })) {
+    redirectToTab("cabinets", {
+      error: "Only the cabinet creator or an admin can edit or disable this cabinet.",
+    });
+  }
+
+  return account;
 }
 
 // ---------------------------------------------------------------------------
@@ -97,11 +111,12 @@ export async function uploadImportCsvFromAdAccountsAction(formData: FormData) {
 // ---------------------------------------------------------------------------
 
 export async function createAdAccountAction(formData: FormData) {
-  await requireAuthSession();
+  const session = await requireAuthSession();
 
   const rawAccountId = String(formData.get("accountId") ?? "");
   const tag = String(formData.get("tag") ?? "").trim();
-  const ownerId = String(formData.get("ownerId") ?? "").trim() || null;
+  const rawOwnerId = String(formData.get("ownerId") ?? "").trim() || null;
+  const ownerId = session.user.role === "admin" ? rawOwnerId : session.user.id;
 
   const normalizedAccountId = normalizeAccountId(rawAccountId);
 
@@ -116,7 +131,12 @@ export async function createAdAccountAction(formData: FormData) {
   }
 
   try {
-    await createAdAccount({ accountId: normalizedAccountId, tag, ownerId });
+    await createAdAccount({
+      accountId: normalizedAccountId,
+      tag,
+      ownerId,
+      createdById: session.user.id,
+    });
   } catch (error) {
     if (isPrismaUniqueConstraintError(error)) {
       redirectToTab("cabinets", {
@@ -131,40 +151,46 @@ export async function createAdAccountAction(formData: FormData) {
 }
 
 export async function updateAdAccountAction(formData: FormData) {
-  await requireAuthSession();
+  const session = await requireAuthSession();
 
   const id = String(formData.get("id") ?? "");
   const tag = String(formData.get("tag") ?? "").trim();
   const ownerId = String(formData.get("ownerId") ?? "").trim() || null;
 
   if (!id) redirectToTab("cabinets", { error: "Не указан ID кабинета." });
+  await requireAdAccountManagementAccess(id, session.user.id, session.user.role);
 
   const tagError = validateTag(tag);
   if (tagError) {
     redirectToTab("cabinets", { edit: id, error: tagError });
   }
 
-  await updateAdAccount(id, { tag, ownerId });
+  await updateAdAccount(id, {
+    tag,
+    ...(session.user.role === "admin" ? { ownerId } : {}),
+  });
 
   revalidatePath("/ad-accounts");
   redirectToTab("cabinets", { updated: id });
 }
 
 export async function activateAdAccountAction(formData: FormData) {
-  await requireAuthSession();
+  const session = await requireAuthSession();
   const id = String(formData.get("id") ?? "");
   if (!id) redirectToTab("cabinets", { error: "Не указан ID кабинета." });
 
+  await requireAdAccountManagementAccess(id, session.user.id, session.user.role);
   await setAdAccountActive(id, true);
   revalidatePath("/ad-accounts");
   redirectToTab("cabinets");
 }
 
 export async function deactivateAdAccountAction(formData: FormData) {
-  await requireAuthSession();
+  const session = await requireAuthSession();
   const id = String(formData.get("id") ?? "");
   if (!id) redirectToTab("cabinets", { error: "Не указан ID кабинета." });
 
+  await requireAdAccountManagementAccess(id, session.user.id, session.user.role);
   await setAdAccountActive(id, false);
   revalidatePath("/ad-accounts");
   redirectToTab("cabinets");
