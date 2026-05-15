@@ -44,6 +44,13 @@ enum ImportSourceType {
   @@map("import_source_type")
 }
 
+enum ImportMode {
+  DAILY_MANUAL    @map("daily_manual")
+  BULK_HISTORICAL @map("bulk_historical")
+
+  @@map("import_mode")
+}
+
 enum ImportLevel {
   CAMPAIGN @map("campaign")
   AD_SET   @map("ad_set")
@@ -575,6 +582,7 @@ model ImportRun {
   id                    String           @id @default(cuid()) @map("id")
   adAccountId           String?          @map("ad_account_id")
   sourceType            ImportSourceType @default(CSV_UPLOAD) @map("source_type")
+  importMode            ImportMode       @default(DAILY_MANUAL) @map("import_mode")
   sourceFilename        String           @map("source_filename")
   sourceStorageKey      String?          @map("source_storage_key")
   sourceFileHash        String?          @map("source_file_hash")
@@ -618,6 +626,7 @@ model ImportRun {
 
   @@index([sourceFileHash])
   @@index([adAccountId])
+  @@index([importMode])
   @@index([isActive])
   @@index([processingStatus])
   @@index([receivedAt])

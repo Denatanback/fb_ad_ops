@@ -1,4 +1,5 @@
 import {
+  ImportMode,
   ImportRunStatus,
   NotificationDeliveryStatus,
   NotificationDigestStatus,
@@ -10,6 +11,7 @@ import { db } from "@/server/db/client";
 type CreateImportRunInput = {
   sourceFilename: string;
   sourceType?: ImportSourceType;
+  importMode?: ImportMode;
   sourceStorageKey?: string | null;
   sourceFileHash?: string | null;
   sourceFormatKey?: string | null;
@@ -38,6 +40,7 @@ const importRunSummarySelect = {
   id: true,
   sourceFilename: true,
   sourceType: true,
+  importMode: true,
   sourceStorageKey: true,
   sourceFileHash: true,
   sourceFormatKey: true,
@@ -61,6 +64,7 @@ const importRunListSelect = {
   id: true,
   sourceFilename: true,
   sourceType: true,
+  importMode: true,
   sourceStorageKey: true,
   sourceFileHash: true,
   sourceFormatKey: true,
@@ -83,6 +87,13 @@ const importRunListSelect = {
       id: true,
       tag: true,
       accountId: true
+    }
+  },
+  uploadedBy: {
+    select: {
+      id: true,
+      email: true,
+      name: true
     }
   },
   _count: {
@@ -726,6 +737,7 @@ export async function createImportRun(input: CreateImportRunInput) {
     data: {
       sourceFilename: input.sourceFilename,
       sourceType: input.sourceType ?? "CSV_UPLOAD",
+      importMode: input.importMode ?? ImportMode.DAILY_MANUAL,
       sourceStorageKey: normalizeNullableText(input.sourceStorageKey),
       sourceFileHash: normalizeNullableText(input.sourceFileHash),
       sourceFormatKey: normalizeNullableText(input.sourceFormatKey),
@@ -823,6 +835,19 @@ export async function getImportRunDetails(importRunId: string) {
 
 export async function listRecentImportRuns(limit = 12) {
   return db.importRun.findMany({
+    orderBy: {
+      receivedAt: "desc"
+    },
+    take: limit,
+    select: importRunListSelect
+  });
+}
+
+export async function listBulkHistoricalImportRuns(limit = 20) {
+  return db.importRun.findMany({
+    where: {
+      importMode: ImportMode.BULK_HISTORICAL
+    },
     orderBy: {
       receivedAt: "desc"
     },

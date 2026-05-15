@@ -74,6 +74,15 @@ const workspaceNavigationItems: WorkspaceNavigationItem[] = [
     matchPrefixes: ["/admin/users"]
   },
   {
+    href: "/admin/bulk-imports",
+    title: "Bulk CSV",
+    description: "Historical Meta Ads CSV imports with date-level replacement.",
+    sectionId: "settings",
+    showInSidebar: true,
+    adminOnly: true,
+    matchPrefixes: ["/admin/bulk-imports"]
+  },
+  {
     href: "/admin/notifications",
     title: "Телеграм",
     description: "Digest-очередь, routing по topics и диагностика доставки.",

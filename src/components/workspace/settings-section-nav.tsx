@@ -32,6 +32,11 @@ const settingsNavigationItems: SettingsNavigationItem[] = [
     adminOnly: true
   },
   {
+    href: "/admin/bulk-imports",
+    label: "Bulk CSV",
+    adminOnly: true
+  },
+  {
     href: "/admin/google-drive",
     label: "Google Drive",
     adminOnly: true
