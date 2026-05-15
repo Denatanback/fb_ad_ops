@@ -3,6 +3,7 @@ import { FlashMessage } from "@/components/workspace/flash-message";
 import { PageHeader } from "@/components/workspace/page-header";
 import { SectionCard } from "@/components/workspace/section-card";
 import { ManualImportUploadForm } from "@/components/imports/manual-import-upload-form";
+import { CsvHintCard } from "@/components/imports/csv-hint-card";
 import {
   uploadImportCsvFromAdAccountsAction,
   createAdAccountAction,
@@ -273,18 +274,20 @@ export default async function AdAccountsPage({ searchParams }: AdAccountsPagePro
       ) : null}
 
       {/* ── Tab navigation ─────────────────────────────────────────────────── */}
-      <nav aria-label="Ad Accounts sections" className="settings-section-nav">
-        {tabs.map((tab) => (
-          <Link
-            className={`settings-section-nav__item${
-              activeTab === tab.id ? " settings-section-nav__item--active" : ""
-            }`}
-            href={`/ad-accounts?tab=${tab.id}`}
-            key={tab.id}
-          >
-            {tab.label}
-          </Link>
-        ))}
+      <nav aria-label="Ad Accounts sections" className="workspace-toolbar">
+        <div className="workspace-toolbar__row">
+          <div className="workspace-toolbar__group">
+            {tabs.map((tab) => (
+              <Link
+                className={`toolbar-chip${activeTab === tab.id ? " toolbar-chip--active" : ""}`}
+                href={`/ad-accounts?tab=${tab.id}`}
+                key={tab.id}
+              >
+                {tab.label}
+              </Link>
+            ))}
+          </div>
+        </div>
       </nav>
 
       {/* ── Cabinets ───────────────────────────────────────────────────────── */}
@@ -328,12 +331,19 @@ export default async function AdAccountsPage({ searchParams }: AdAccountsPagePro
       {activeTab === "upload" && (
         <SectionCard
           title="Загрузка CSV"
-          description="Выберите кабинет и загрузите экспортированные файлы Facebook Ads. Повторная загрузка того же дня заменяет предыдущие данные кабинета."
+          description="Выберите кабинет и загрузите экспортированные файлы Facebook Ads."
         >
-          <ManualImportUploadForm
-            action={uploadImportCsvFromAdAccountsAction}
-            adAccounts={adAccounts.filter((a: AdAccount) => a.isActive)}
-          />
+          <div className="upload-with-hint">
+            <div className="upload-with-hint__form">
+              <ManualImportUploadForm
+                action={uploadImportCsvFromAdAccountsAction}
+                adAccounts={adAccounts.filter((a: AdAccount) => a.isActive)}
+              />
+            </div>
+            <div className="upload-with-hint__sidebar">
+              <CsvHintCard />
+            </div>
+          </div>
         </SectionCard>
       )}
 

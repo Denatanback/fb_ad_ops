@@ -3406,3 +3406,111 @@ a.gallery-folder-breadcrumb__root:hover {
     min-width: unset;
   }
 }
+
+/* ── Upload + hint two-column layout ──────────────────────────────────────── */
+
+.upload-with-hint {
+  display: flex;
+  gap: 24px;
+  align-items: flex-start;
+}
+
+.upload-with-hint__form {
+  flex: 1 1 0;
+  min-width: 0;
+}
+
+.upload-with-hint__sidebar {
+  flex: 0 0 260px;
+  width: 260px;
+}
+
+@media (max-width: 860px) {
+  .upload-with-hint {
+    flex-direction: column;
+  }
+  .upload-with-hint__sidebar {
+    flex: none;
+    width: 100%;
+  }
+}
+
+/* ── CSV hint card ─────────────────────────────────────────────────────────── */
+
+.csv-hint-card {
+  padding: 14px 16px;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  background: var(--background-panel);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  font-size: 0.78rem;
+}
+
+.csv-hint-card__title {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  letter-spacing: 0.01em;
+  margin: 0;
+}
+
+.csv-hint-card__rules {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.csv-hint-card__rule {
+  display: block;
+  padding: 3px 7px;
+  border-radius: 4px;
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-size: 0.73rem;
+  font-weight: 500;
+  line-height: 1.4;
+}
+
+.csv-hint-card__groups {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.csv-hint-card__group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.csv-hint-card__level {
+  font-size: 0.73rem;
+  font-weight: 700;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin: 0;
+}
+
+.csv-hint-card__fields {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.csv-hint-card__fields li {
+  padding: 2px 0;
+  color: var(--text-secondary);
+  font-size: 0.74rem;
+  line-height: 1.4;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.csv-hint-card__fields li:last-child {
+  border-bottom: none;
+}
